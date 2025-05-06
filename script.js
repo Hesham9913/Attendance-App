@@ -1059,7 +1059,6 @@ function openTimePickerPopup(recordId) {
   };
 }
 
-let employeePayslipHtml = "";
 
 async function fetchPayslip() {
   const fullname = currentUser?.fullname;
@@ -1067,24 +1066,28 @@ async function fetchPayslip() {
 
   const url = "https://inmklarxbvafddjllyga.supabase.co/functions/v1/payroll_refresh";
 
-  const response = await fetch(url);
-  const data = await response.json();
+  try {
+    const response = await fetch(url);
+    const json = await response.json();
 
-  const matched = data.find(p => p.employee_id?.[1] === fullname && p.x_studio_monthly_report);
+    const matched = json.result.find(p => p.employee_id?.[1] === fullname && p.x_studio_monthly_report);
 
-  if (!matched) {
-    alert("❌ لا يوجد تقرير مرتب لك حتى الآن");
-    return;
+    if (!matched) {
+      alert("❌ لا يوجد تقرير مرتب لك حتى الآن");
+      return;
+    }
+
+    const htmlContent = matched.x_studio_monthly_report;
+
+    // عرض مباشر
+    const container = document.getElementById("payslipContent");
+    container.innerHTML = htmlContent;
+    container.style.display = "block";
+
+    // تحميل كـ PDF تلقائيًا
+    html2pdf().from(htmlContent).save(`${fullname}_Payslip.pdf`);
+  } catch (error) {
+    console.error("❌ Error fetching payslip:", error);
+    alert("❌ فشل في تحميل تقرير المرتب");
   }
-
-  employeePayslipHtml = matched.x_studio_monthly_report;
-  document.getElementById("showPayslipBtn").style.display = "inline-block";
-  document.getElementById("employee-payslip").style.display = "block";
-  alert("✅ تم تحميل تقرير المرتب. اضغط Show Payslip لعرضه.");
-}
-
-function showPayslip() {
-  const container = document.getElementById("payslipContent");
-  container.innerHTML = employeePayslipHtml;
-  container.style.display = "block";
 }
