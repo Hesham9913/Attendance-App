@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<link rel="manifest" href="manifest.json">
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Hesham's Attendance</title>
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css">
+  <link rel="stylesheet" href="style.css">
+
+  <!-- JS Libraries -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+</head>
+<body>
+
+<!-- Loading Indicator -->
+<div id="loadingIndicator" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0, 0, 0, 0.8); color: white; padding: 20px; border-radius: 10px; z-index: 9999;">
+  ⌛ Loading... Please wait.
+</div>
+
+<div class="container">
+
+  <!-- Login Area -->
+  <div id="login-area" class="card login-card">
+    <img src="profile.jpeg" alt="Profile Image" class="profile-img">
+    <h1 class="title">Hesham's Attendance</h1>
+    <div class="form-group">
+      <input type="text" id="username" placeholder="Username">
+    </div>
+    <div class="form-group">
+      <input type="password" id="password" placeholder="Password">
+    </div>
+    <div class="form-group text-center">
+      <button class="btn primary" onclick="login()">Login</button>
+    </div>
+  </div>
+
+  <!-- Employee Area -->
+<div id="employee-area" class="card employee-card" style="display:none;">
+  <h2 class="title">Welcome, <span id="empName"></span>!</h2>
+  <div class="button-group">
+    <button class="btn success" onclick="checkIn()">Check In</button>
+    <button class="btn warning" onclick="checkOut()">Check Out</button>
+    <button class="btn danger" onclick="requestAdminPasswordBeforeLogout()">Logout</button>
+  </div>
+  <h3 id="status" class="status-text"></h3>
+</div>
+
+<!-- Employee Attendance Table -->
+<div id="employee-records" style="margin-top: 30px; display: none;">
+  <h3 class="subtitle" style="text-align: center;">Your Attendance This Month</h3>
+  <div class="table-container">
+    <table id="employeeTable" style="width: 100%; border-collapse: collapse;">
+      <thead>
+        <tr>
+          <th style="padding: 10px; border-bottom: 1px solid #ccc;">Day</th>
+          <th style="padding: 10px; border-bottom: 1px solid #ccc;">Check In</th>
+          <th style="padding: 10px; border-bottom: 1px solid #ccc;">Check Out</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Employee Deductions Table -->
+<div id="employee-deductions" style="margin-top: 30px; display: none;">
+  <div style="background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+    <h3 style="text-align: center; margin-bottom: 20px;">Your Deductions</h3>
+    <table id="deductionsTable" style="width: 100%; border-collapse: collapse; text-align: center;">
+      <thead>
+        <tr style="background-color: #f5f5f5;">
+          <th style="padding: 12px; border-bottom: 1px solid #ddd;">Amount</th>
+          <th style="padding: 12px; border-bottom: 1px solid #ddd;">Reason</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Employee Payslip -->
+<div id="employee-payslip" style="margin-top: 30px; display: none;">
+  <div style="background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+    <h3 style="text-align: center; margin-bottom: 20px;">Your Payslip</h3>
+    
+    <div style="text-align: center; margin-bottom: 20px;">
+      <button class="btn primary" onclick="fetchPayslip()">📥 Fetch Payslip</button>
+      <button class="btn success" id="showPayslipBtn" onclick="showPayslip()" style="display: none;">📄 Show Payslip</button>
+    </div>
+    
+    <div id="payslipContent" style="display: none;"></div>
+  </div>
+</div>
+
+
+
+
+
+  <!-- Admin Area -->
+<div id="admin-area" class="admin-full" style="display:none;">
+  <h2 class="title">Hesham's Dashboard</h2>
+
+  <div class="filters-box">
+
+    <!-- سطر 1: سيرش الموظف لوحده -->
+    <div class="filter-group" style="width: 100%;">
+     <div style="width: 100%;">
+      <select id="employeeFilter" multiple style="width: 100%; min-height: 45px; padding: 10px; font-size: 16px; border-radius: 10px; border: 1px solid #ccc;"></select>
+     </div>
+    </div>
+
+
+    <!-- سطر 2: التاريخ من وإلى و Apply Filters -->
+    <div class="filter-group" style="display: flex; flex-direction: row; gap: 10px; justify-content: center; width: 100%;">
+      <input type="date" id="startDateFilter" placeholder="Start Date">
+      <input type="date" id="endDateFilter" placeholder="End Date">
+      <button class="btn primary" onclick="applyFilters()">Apply Filters</button>
+    </div>
+
+    <!-- سطر 3: Add New Record و Refresh Table -->
+    <div class="filter-group" style="display: flex; flex-direction: row; gap: 10px; justify-content: center; width: 100%;">
+      <button class="btn danger" onclick="resetFilters()">Reset Filters</button>
+      <button class="btn success" onclick="addNewRecord()">+ Add New Record</button>
+      <button class="btn warning" onclick="loadAdminData()">🔄 Refresh Table</button>
+      <button class="btn info" onclick="downloadReport()">⬇️ Download Report</button>
+    </div>
+
+  </div>
+
+  <div class="table-container">
+    <table id="attendanceTable">
+      <thead>
+        <tr>
+          <th>Employee</th>
+          <th>Check In</th>
+          <th>Check In Location</th>
+          <th>Check Out</th>
+          <th>Check Out Location</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <div class="logout-container" style="display: flex; justify-content: center; margin-top: 30px;">
+    <button class="btn danger logout-btn" onclick="logout()">Logout</button>
+  </div>
+
+</div>
+
+<script src="script.js"></script>
+
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/service-worker.js').then(registration => {
+      console.log('✅ Service Worker registered with scope:', registration.scope);
+
+      // 👀 نتابع أي تحديث جديد
+      registration.onupdatefound = () => {
+        const installingWorker = registration.installing;
+        installingWorker.onstatechange = () => {
+          if (installingWorker.state === 'installed') {
+            if (navigator.serviceWorker.controller) {
+              // فيه تحديث جاهز!
+              showUpdateToast();
+            }
+          }
+        };
+      };
+    }).catch(error => {
+      console.error('❌ Service Worker registration failed:', error);
+    });
+  }
+
+  function showUpdateToast() {
+    const toast = document.createElement('div');
+    toast.textContent = '🔄 تحديث جديد متاح! اضغط هنا لتحديث التطبيق';
+    toast.style.cssText = `
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #2ecc71;
+      color: white;
+      padding: 12px 20px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: bold;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      z-index: 9999;
+    `;
+    toast.onclick = () => {
+      location.reload(true);
+    };
+    document.body.appendChild(toast);
+  }
+</script>
+
+
+<script>
+  // ✨ نسمع أي تغييرات في الاتصال بالنت
+  window.addEventListener('online', () => {
+    alert('✅ You are back online!');
+  });
+
+  window.addEventListener('offline', () => {
+    alert('❌ You are offline now.');
+  });
+</script>
+
+
+</body>
+</html>
