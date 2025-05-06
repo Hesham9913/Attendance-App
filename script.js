@@ -37,8 +37,6 @@ window.onload = function() {
       document.getElementById("employee-area").style.display = "block";
       document.getElementById("empName").textContent = fullname;
       loadEmployeeAttendance(); // ✅ تحميل بيانات الحضور بعد الفتح
-      loadDeductions(); // ✅ تحميل الخصومات بعد الريفريش
-      document.getElementById("employee-deductions").style.display = "block";
       document.getElementById("employee-payslip").style.display = "block";
 
     } else if (role === "admin") {
@@ -216,8 +214,6 @@ function login() {
     localStorage.setItem("username", user.username); // ✅ ضروري للخصومات
 
     loadEmployeeAttendance(); // ✅ تحميل الحضور
-    loadDeductions(); // ✅ تحميل الخصومات من Google Sheet
-    document.getElementById("employee-deductions").style.display = "block"; // ✅ عرض جدول الخصومات
     document.getElementById("employee-payslip").style.display = "block"; // ✨ عرض جدول المرتب
 
 
@@ -319,38 +315,6 @@ async function loadEmployeeAttendance() {
   } else {
     employeeRecordsDiv.style.display = 'none';
   }
-}
-
-
-async function loadDeductions() {
-  const currentEmployee = localStorage.getItem("fullname");
-
-  // 👇 نضيف رقم عشوائي لمنع الكاش
-  const url = "https://script.google.com/macros/s/AKfycbzRmGT4gyWdeBZqERZHsrRBEY8ZMZKxNg600eF7qdvExYG1L_5jO1pt2KrLvUdS8H0cZA/exec?t=" + Date.now();
-  
-  const response = await fetch(url, { cache: "no-store" }); // 👈 برضو نمنع التخزين المؤقت
-  const data = await response.json();
-
-  const filtered = data.filter(row => row.employee_name?.trim() === currentEmployee?.trim());
-
-  const tbody = document.querySelector("#deductionsTable tbody");
-  tbody.innerHTML = "";
-
-  if (filtered.length === 0) {
-    document.getElementById("employee-deductions").style.display = "none";
-    return;
-  }
-
-  document.getElementById("employee-deductions").style.display = "block";
-
-  filtered.forEach(record => {
-    const row = document.createElement("tr");
-    row.innerHTML = `
-      <td>${record.amount}</td>
-      <td>${record.reason}</td>
-    `;
-    tbody.appendChild(row);
-  });
 }
 
 
