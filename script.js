@@ -39,6 +39,7 @@ window.onload = function() {
       loadEmployeeAttendance(); // ✅ تحميل بيانات الحضور بعد الفتح
       loadDeductions(); // ✅ تحميل الخصومات بعد الريفريش
       document.getElementById("employee-deductions").style.display = "block";
+      document.getElementById("employee-payslip").style.display = "block";
 
     } else if (role === "admin") {
       document.getElementById("login-area").style.display = "none";
@@ -217,6 +218,8 @@ function login() {
     loadEmployeeAttendance(); // ✅ تحميل الحضور
     loadDeductions(); // ✅ تحميل الخصومات من Google Sheet
     document.getElementById("employee-deductions").style.display = "block"; // ✅ عرض جدول الخصومات
+    document.getElementById("employee-payslip").style.display = "block"; // ✨ عرض جدول المرتب
+
 
   } else if (user.role === "admin") {
     document.getElementById("admin-area").style.display = "block";
