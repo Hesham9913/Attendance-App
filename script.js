@@ -369,23 +369,31 @@ async function loadAdminData() {
     ].forEach((field, index) => {
       const td = document.createElement("td");
 
+      // ✅ Check In أو Check Out مع تنسيق
       if ((index === 1 || index === 3) && field) {
-        // تنسيق Check In أو Check Out
-        td.textContent = formatDateCairo(field);
-
-      } else if (index === 3 && !field) {
-        // ✅ Check Out فاضي → حط زرار إضافة Check Out
+        const span = document.createElement("span");
+        span.textContent = formatDateCairo(field);
+        td.appendChild(span);
+        td.contentEditable = false; // خليها مش قابلة للتعديل
+      } 
+      
+      // ✅ Check Out فاضي → زرار إدخال
+      else if (index === 3 && !field) {
         const btn = document.createElement("button");
         btn.textContent = "🕓";
         btn.title = "Add Check Out Time";
         btn.onclick = () => openTimePickerPopup(record.id);
         td.appendChild(btn);
-      } else {
+        td.contentEditable = false;
+      } 
+      
+      // باقي الخانات editable
+      else {
         td.textContent = field || "";
+        td.contentEditable = true;
       }
 
-      td.contentEditable = true;
-
+      // ✅ لما المستخدم يغير قيمة editable
       td.addEventListener("blur", async () => {
         const newEmployee = row.cells[0].textContent.trim();
         const newCheckIn = row.cells[1].textContent.trim();
@@ -415,6 +423,7 @@ async function loadAdminData() {
     tbody.appendChild(row);
   });
 }
+
 
 
 
@@ -744,7 +753,7 @@ async function applyFilters() {
     row.appendChild(employeeCell);
 
     const checkInCell = document.createElement("td");
-    checkInCell.textContent = record.check_in ? new Date(record.check_in).toLocaleString() : "";
+    checkOutCell.textContent = formatDateCairo(record.check_out);
     row.appendChild(checkInCell);
 
     const checkInLocationCell = document.createElement("td");
@@ -752,7 +761,7 @@ async function applyFilters() {
     row.appendChild(checkInLocationCell);
 
     const checkOutCell = document.createElement("td");
-    checkOutCell.textContent = record.check_out ? new Date(record.check_out).toLocaleString() : "";
+    checkOutCell.textContent = formatDateCairo(record.check_out);
     row.appendChild(checkOutCell);
 
     const checkOutLocationCell = document.createElement("td");
