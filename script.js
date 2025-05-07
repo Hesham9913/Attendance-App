@@ -228,6 +228,23 @@ function login() {
   }
 }
 
+function formatDateCairo(dateString) {
+  if (!dateString) return "";
+  const options = {
+    timeZone: 'Africa/Cairo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  };
+  const date = new Date(dateString);
+  const parts = new Intl.DateTimeFormat('en-GB', options).formatToParts(date);
+  const lookup = Object.fromEntries(parts.map(p => [p.type, p.value]));
+  return `${lookup.year}-${lookup.month}-${lookup.day} ${lookup.hour}:${lookup.minute}`;
+}
+
 
 
 async function loadEmployeeAttendance() {
@@ -252,14 +269,9 @@ async function loadEmployeeAttendance() {
 
   employeeAttendanceCache = records;
 
-  // DEBUG
-  console.log("📦 All records:", records);
-  console.log("📅 Filtering from:", startOfMonth.toISOString(), "to:", endOfMonth.toISOString());
-
   const filteredRecords = records.filter(record => {
     if (!record.check_in) return false;
     const checkInDate = new Date(record.check_in);
-    // remove time part by resetting hours
     checkInDate.setHours(0, 0, 0, 0);
     const start = new Date(startOfMonth);
     const end = new Date(endOfMonth);
@@ -267,9 +279,6 @@ async function loadEmployeeAttendance() {
     end.setHours(23, 59, 59, 999);
     return checkInDate >= start && checkInDate <= end;
   });
-
-  // DEBUG
-  console.log("✅ Filtered records:", filteredRecords);
 
   filteredRecords.forEach(record => {
     const row = document.createElement('tr');
@@ -281,28 +290,12 @@ async function loadEmployeeAttendance() {
     row.appendChild(dayCell);
 
     const checkInCell = document.createElement('td');
-    checkInCell.textContent = record.check_in ? new Date(record.check_in).toLocaleString('en-GB', {
-      timeZone: 'Africa/Cairo',
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false
-    }) : '-';
+    checkInCell.textContent = formatDateCairo(record.check_in) || '-';
     checkInCell.style.padding = '10px';
     checkInCell.style.textAlign = 'center';
 
     const checkOutCell = document.createElement('td');
-    checkOutCell.textContent = record.check_out ? new Date(record.check_out).toLocaleString('en-GB', {
-      timeZone: 'Africa/Cairo',
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false
-    }) : '-';
+    checkOutCell.textContent = formatDateCairo(record.check_out) || '-';
     checkOutCell.style.padding = '10px';
     checkOutCell.style.textAlign = 'center';
 
@@ -312,13 +305,8 @@ async function loadEmployeeAttendance() {
     employeeTableBody.appendChild(row);
   });
 
-  if (filteredRecords.length > 0) {
-    employeeRecordsDiv.style.display = 'block';
-  } else {
-    employeeRecordsDiv.style.display = 'none';
-  }
+  employeeRecordsDiv.style.display = filteredRecords.length > 0 ? 'block' : 'none';
 }
-
 
 
 
