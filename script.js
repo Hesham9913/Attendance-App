@@ -1,25 +1,27 @@
-// ✨ كود تحديث السرفيس ووركر وتشغيله فورًا
+// ✨ كود تحديث السرفيس ووركر وتشغيله فورًا + إجبار التحديث في iOS
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.getRegistration().then(reg => {
-    if (reg && reg.waiting) {
-      // لو في نسخة جديدة مستنية، شغلها فورًا
-      reg.waiting.postMessage({ type: 'SKIP_WAITING' });
-      window.location.reload(); // أعد تحميل الصفحة بعد التحديث
-    }
+    if (reg) {
+      // 💥 Force update يدوي لأي جهاز (خصوصًا iOS)
+      reg.update();
 
-    // لما يلاقي نسخة جديدة
-    reg?.addEventListener('updatefound', () => {
-      const newWorker = reg.installing;
-      newWorker.addEventListener('statechange', () => {
-        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-          newWorker.postMessage({ type: 'SKIP_WAITING' });
-          window.location.reload(); // أعد التحميل بعد التفعيل
-        }
+      if (reg.waiting) {
+        // لو في نسخة جديدة مستنية، شغلها فورًا
+        reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+        window.location.reload(); // أعد تحميل الصفحة بعد التحديث
+      }
+
+      // لما يلاقي نسخة جديدة
+      reg.addEventListener('updatefound', () => {
+        const newWorker = reg.installing;
+        newWorker.addEventListener('statechange', () => {
+          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+            newWorker.postMessage({ type: 'SKIP_WAITING' });
+            window.location.reload(); // أعد التحميل بعد التفعيل
+          }
+        });
       });
-    });
-
-    // طلب التحديث يدويًا
-    reg?.update();
+    }
   });
 }
 
