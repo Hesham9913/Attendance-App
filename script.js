@@ -748,29 +748,35 @@ async function applyFilters() {
   filtered.forEach(record => {
     const row = document.createElement("tr");
 
+    // Employee
     const employeeCell = document.createElement("td");
     employeeCell.textContent = record.employee_name || "";
     row.appendChild(employeeCell);
 
+    // Check In
     const checkInCell = document.createElement("td");
-    checkOutCell.textContent = formatDateCairo(record.check_out);
+    checkInCell.textContent = formatDateCairo(record.check_in);
     row.appendChild(checkInCell);
 
+    // Check In Location
     const checkInLocationCell = document.createElement("td");
     checkInLocationCell.textContent = record.check_in_location || "";
     row.appendChild(checkInLocationCell);
 
+    // Check Out
     const checkOutCell = document.createElement("td");
     checkOutCell.textContent = formatDateCairo(record.check_out);
     row.appendChild(checkOutCell);
 
+    // Check Out Location
     const checkOutLocationCell = document.createElement("td");
     checkOutLocationCell.textContent = record.check_out_location || "";
     row.appendChild(checkOutLocationCell);
 
+    // Actions
     const actionCell = document.createElement("td");
     const deleteBtn = document.createElement("button");
-    deleteBtn.textContent = "Delete";
+    deleteBtn.textContent = "🗑️";
     deleteBtn.onclick = async () => {
       if (confirm("Are you sure you want to delete this record?")) {
         await deleteRecord(record.id);
@@ -783,6 +789,7 @@ async function applyFilters() {
     tbody.appendChild(row);
   });
 }
+
 
 
 
@@ -888,76 +895,6 @@ async function addNewRecord() {
   tbody.appendChild(row);
 }
 
-
-
-async function downloadReport() {
-  const selectedEmployees = employeeFilter.getValue().map(emp => emp.value);
-  const startDate = document.getElementById("startDateFilter").value;
-  const endDate = document.getElementById("endDateFilter").value;
-
-  const { data: records, error } = await supabase
-    .from('attendance')
-    .select('*');
-
-  if (error) {
-    alert('❌ Error loading data for report!');
-    console.error(error);
-    return;
-  }
-
-  let filtered = records;
-
-  if (selectedEmployees.length > 0) {
-    filtered = filtered.filter(r => selectedEmployees.includes(r.employee_name));
-  }
-
-  if (startDate && endDate) {
-    filtered = filtered.filter(r => {
-      if (!r.check_in) return false;
-      const recordDate = new Date(r.check_in).toISOString().split('T')[0];
-      return recordDate >= startDate && recordDate <= endDate;
-    });
-  }
-
-  if (filtered.length === 0) {
-    alert("⚠️ No records found for selected filters!");
-    return;
-  }
-
-  let csvContent = "Employee,Check In,Check In Location,Check Out,Check Out Location\n";
-
-  filtered.forEach(record => {
-     const employee = record.employee_name || "";
-     const checkIn = formatDateCairo(record.check_in);
-     const checkInLoc = record.check_in_location || "";
-     const checkOut = formatDateCairo(record.check_out);
-     const checkOutLoc = record.check_out_location || "";
-
-    csvContent += `"${employee}","${checkIn}","${checkInLoc}","${checkOut}","${checkOutLoc}"\n`;
-  });
-
-  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.setAttribute("href", url);
-  link.setAttribute("download", "attendance_report.csv");
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-}
-
-function formatDateForReport(date) {
-  if (!date) return "";
-  return new Date(date).toLocaleString('en-GB', {
-    timeZone: 'Africa/Cairo',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false
-  });
-}
 
 
 function resetFilters() {
