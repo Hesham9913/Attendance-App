@@ -691,13 +691,13 @@ async function downloadReport() {
   let csvContent = "Employee,Check In,Check In Location,Check Out,Check Out Location\n";
 
   filtered.forEach(record => {
-     const employee = record.employee_name || "";
-     const checkIn = formatDateCairo(record.check_in);
-     const checkInLoc = record.check_in_location || "";
-     const checkOut = formatDateCairo(record.check_out);
-     const checkOutLoc = record.check_out_location || "";
+    const employee = record.employee_name || "";
+    const checkIn = record.check_in ? `="${formatDateCairo(record.check_in)}"` : "";
+    const checkInLoc = record.check_in_location || "";
+    const checkOut = record.check_out ? `="${formatDateCairo(record.check_out)}"` : "";
+    const checkOutLoc = record.check_out_location || "";
 
-    csvContent += `"${employee}","${checkIn}","${checkInLoc}","${checkOut}","${checkOutLoc}"\n`;
+    csvContent += `"${employee}",${checkIn},"${checkInLoc}",${checkOut},"${checkOutLoc}"\n`;
   });
 
   const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
@@ -709,6 +709,7 @@ async function downloadReport() {
   link.click();
   document.body.removeChild(link);
 }
+
 
 
 async function applyFilters() {
