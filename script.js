@@ -371,15 +371,8 @@ async function loadAdminData() {
 
       if ((index === 1 || index === 3) && field) {
         // تنسيق Check In أو Check Out
-        td.textContent = new Date(field).toLocaleString('en-GB', {
-          timeZone: 'Africa/Cairo',
-          year: 'numeric',
-          month: '2-digit',
-          day: '2-digit',
-          hour: '2-digit',
-          minute: '2-digit',
-          hour12: false
-        });
+        td.textContent = formatDateCairo(field);
+
       } else if (index === 3 && !field) {
         // ✅ Check Out فاضي → حط زرار إضافة Check Out
         const btn = document.createElement("button");
@@ -689,11 +682,11 @@ async function downloadReport() {
   let csvContent = "Employee,Check In,Check In Location,Check Out,Check Out Location\n";
 
   filtered.forEach(record => {
-    const employee = record.employee_name || "";
-    const checkIn = record.check_in ? new Date(record.check_in).toLocaleString() : "";
-    const checkInLoc = record.check_in_location || "";
-    const checkOut = record.check_out ? new Date(record.check_out).toLocaleString() : "";
-    const checkOutLoc = record.check_out_location || "";
+     const employee = record.employee_name || "";
+     const checkIn = formatDateCairo(record.check_in);
+     const checkInLoc = record.check_in_location || "";
+     const checkOut = formatDateCairo(record.check_out);
+     const checkOutLoc = record.check_out_location || "";
 
     csvContent += `"${employee}","${checkIn}","${checkInLoc}","${checkOut}","${checkOutLoc}"\n`;
   });
@@ -851,9 +844,15 @@ async function addNewRecord() {
   saveBtn.textContent = "💾";
   saveBtn.onclick = async () => {
     const employeeName = select.value;
-    const checkIn = new Date(`${checkInDate.value}T${checkInTime.value}`).toISOString();
-    const checkOut = (checkOutDate.value && checkOutTime.value) ? 
-      new Date(`${checkOutDate.value}T${checkOutTime.value}`).toISOString() : null;
+
+    const checkIn = checkInDate.value && checkInTime.value
+      ? new Date(`${checkInDate.value}T${checkInTime.value}:00+03:00`).toISOString()
+      : null;
+
+    const checkOut = (checkOutDate.value && checkOutTime.value)
+      ? new Date(`${checkOutDate.value}T${checkOutTime.value}:00+03:00`).toISOString()
+      : null;
+
     const checkInLocation = checkInLocSelect.value || null;
     const checkOutLocation = checkOutLocSelect.value || null;
 
@@ -879,6 +878,7 @@ async function addNewRecord() {
 
   tbody.appendChild(row);
 }
+
 
 
 async function downloadReport() {
@@ -918,11 +918,11 @@ async function downloadReport() {
   let csvContent = "Employee,Check In,Check In Location,Check Out,Check Out Location\n";
 
   filtered.forEach(record => {
-    const employee = record.employee_name || "";
-    const checkIn = formatDateForReport(record.check_in);
-    const checkInLoc = record.check_in_location || "";
-    const checkOut = formatDateForReport(record.check_out);
-    const checkOutLoc = record.check_out_location || "";
+     const employee = record.employee_name || "";
+     const checkIn = formatDateCairo(record.check_in);
+     const checkInLoc = record.check_in_location || "";
+     const checkOut = formatDateCairo(record.check_out);
+     const checkOutLoc = record.check_out_location || "";
 
     csvContent += `"${employee}","${checkIn}","${checkInLoc}","${checkOut}","${checkOutLoc}"\n`;
   });
@@ -937,17 +937,19 @@ async function downloadReport() {
   document.body.removeChild(link);
 }
 
-// ✨ دالة تنسيق التاريخ:
 function formatDateForReport(date) {
   if (!date) return "";
-  const d = new Date(date);
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  const hours = String(d.getHours()).padStart(2, '0');
-  const minutes = String(d.getMinutes()).padStart(2, '0');
-  return `${year}-${month}-${day} ${hours}:${minutes}`;
+  return new Date(date).toLocaleString('en-GB', {
+    timeZone: 'Africa/Cairo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  });
 }
+
 
 function resetFilters() {
   // امسح التاريخين

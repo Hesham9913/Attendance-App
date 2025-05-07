@@ -1,4 +1,4 @@
-const CACHE_NAME = "attendance-cache-v311";
+const CACHE_NAME = "attendance-cache-v315";
 const urlsToCache = [
   "/",
   "/index.html",
