@@ -700,13 +700,14 @@ async function downloadReport() {
     return;
   }
 
-  let csvContent = "Employee,Check In (UTC),Check In Location,Check Out (UTC),Check Out Location\n";
+  // 👇 تغيير عنوان الأعمدة للتوضيح إنه بتوقيت القاهرة
+  let csvContent = "Employee,Check In (Cairo),Check In Location,Check Out (Cairo),Check Out Location\n";
 
   filtered.forEach(record => {
     const employee = record.employee_name || "";
-    const checkIn = record.check_in ? `="${formatDateServer(record.check_in)}"` : "";
+    const checkIn = record.check_in ? `="${formatDateCairo(record.check_in)}"` : "";
     const checkInLoc = record.check_in_location || "";
-    const checkOut = record.check_out ? `="${formatDateServer(record.check_out)}"` : "";
+    const checkOut = record.check_out ? `="${formatDateCairo(record.check_out)}"` : "";
     const checkOutLoc = record.check_out_location || "";
 
     csvContent += `"${employee}",${checkIn},"${checkInLoc}",${checkOut},"${checkOutLoc}"\n`;
