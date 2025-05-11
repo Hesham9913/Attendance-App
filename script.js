@@ -653,6 +653,18 @@ async function saveCheckOut(employeeName, locationName) {
   }
 }
 
+function formatDateServer(dateString) {
+  if (!dateString) return "";
+  const date = new Date(dateString);
+  const yyyy = date.getUTCFullYear();
+  const mm = String(date.getUTCMonth() + 1).padStart(2, '0');
+  const dd = String(date.getUTCDate()).padStart(2, '0');
+  const hh = String(date.getUTCHours()).padStart(2, '0');
+  const mi = String(date.getUTCMinutes()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd} ${hh}:${mi}`;
+}
+
+
 
 async function downloadReport() {
   const selectedEmployees = employeeFilter.getValue().map(emp => emp.value);
@@ -688,13 +700,13 @@ async function downloadReport() {
     return;
   }
 
-  let csvContent = "Employee,Check In,Check In Location,Check Out,Check Out Location\n";
+  let csvContent = "Employee,Check In (UTC),Check In Location,Check Out (UTC),Check Out Location\n";
 
   filtered.forEach(record => {
     const employee = record.employee_name || "";
-    const checkIn = record.check_in ? `="${formatDateCairo(record.check_in)}"` : "";
+    const checkIn = record.check_in ? `="${formatDateServer(record.check_in)}"` : "";
     const checkInLoc = record.check_in_location || "";
-    const checkOut = record.check_out ? `="${formatDateCairo(record.check_out)}"` : "";
+    const checkOut = record.check_out ? `="${formatDateServer(record.check_out)}"` : "";
     const checkOutLoc = record.check_out_location || "";
 
     csvContent += `"${employee}",${checkIn},"${checkInLoc}",${checkOut},"${checkOutLoc}"\n`;
@@ -709,6 +721,7 @@ async function downloadReport() {
   link.click();
   document.body.removeChild(link);
 }
+
 
 
 
