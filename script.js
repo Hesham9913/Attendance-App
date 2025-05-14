@@ -1016,8 +1016,8 @@ async function fetchPayslip() {
 
 async function subscribeToNotifications() {
   if (!('serviceWorker' in navigator)) return;
-  const permission = await Notification.requestPermission();
 
+  const permission = await Notification.requestPermission();
   if (permission !== 'granted') {
     console.log('🔕 Notification permission not granted');
     return;
@@ -1025,7 +1025,8 @@ async function subscribeToNotifications() {
 
   const registration = await navigator.serviceWorker.ready;
 
-  const vapidPublicKey = "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEHPr9q43kficoolvx4RWnsZTOc-GQzxGd5187P0V9IlzDoLQaTq_4JaOENBb2k9FyoQi3Mjxm6lhfOIjx6ezyoA";
+  // ✅ VAPID Public Key بصيغة base64url الصحيحة
+  const vapidPublicKey = "BBydlr-0Af8WLMNC97TZVYh7YWDW9Kn3lZFd6KMKAXm38O7rjZqpNySy67ffD03yU8uZgAPs-y0XIAOnNRKgoEY";
   const convertedVapidKey = urlBase64ToUint8Array(vapidPublicKey);
 
   const subscription = await registration.pushManager.subscribe({
@@ -1041,7 +1042,6 @@ async function subscribeToNotifications() {
   console.log('✅ Push subscription saved for', currentUser.fullname);
 }
 
-// Helper function to convert VAPID key
 function urlBase64ToUint8Array(base64String) {
   const padding = '='.repeat((4 - base64String.length % 4) % 4);
   const base64 = (base64String + padding)
@@ -1051,4 +1051,3 @@ function urlBase64ToUint8Array(base64String) {
   const rawData = atob(base64);
   return Uint8Array.from([...rawData].map(char => char.charCodeAt(0)));
 }
-
