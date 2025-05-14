@@ -1035,9 +1035,10 @@ async function subscribeToNotifications() {
   });
 
   await supabase.from('notifications_tokens').upsert({
-    employee_name: currentUser.fullname,
-    subscription
+  employee_name: currentUser.fullname,
+  subscription: JSON.stringify(subscription)
   }, { onConflict: ['employee_name'] });
+
 
   console.log('✅ Push subscription saved for', currentUser.fullname);
 }
