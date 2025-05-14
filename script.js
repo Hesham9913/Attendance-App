@@ -186,6 +186,7 @@ const users = [
   { username: "Ibrahim Ahmed", password: "IM26481", role: "employee", fullname: "Ibrahim Ahmed" },
   { username: "Amin Metwally", password: "YT34128", role: "employee", fullname: "Amin Metwally" },
   { username: "Mahmoud Ashraf", password: "HF81649", role: "employee", fullname: "Mahmoud Ashraf" },
+  { username: "Salem Mohamed", password: "LO43628", role: "employee", fullname: "Salem Mohamed" },
   
 ];
 
@@ -214,6 +215,8 @@ function login() {
     localStorage.setItem("role", "employee");
     localStorage.setItem("fullname", user.fullname);
     localStorage.setItem("username", user.username); // ✅ ضروري للخصومات
+    subscribeToNotifications();
+
 
     loadEmployeeAttendance(); // ✅ تحميل الحضور
     document.getElementById("employee-payslip").style.display = "block"; // ✨ عرض جدول المرتب
@@ -462,7 +465,7 @@ async function deleteRecord(id) {
 }
 
 function isWithinRange(position) {
-  const maxDistance = 20; // مسافة السماح (متر)
+  const maxDistance = 30; // مسافة السماح (متر)
 
   let nearestBranch = null;
   let nearestDistance = Infinity;
@@ -523,7 +526,7 @@ async function checkIn() {
   
   navigator.geolocation.getCurrentPosition(async position => {
     const result = isWithinRange(position);
-    const maxDistance = 20; // ✨ السماح حتى 20 متر
+    const maxDistance = 30; // ✨ السماح حتى 20 متر
     if (result) {
       const { branchName, distance } = result;
       if (distance <= maxDistance) {
@@ -564,7 +567,7 @@ function checkOut() {
 
   navigator.geolocation.getCurrentPosition(async position => {
     const result = isWithinRange(position);
-    const maxDistance = 20; // ✨ السماح حتى 20 متر
+    const maxDistance = 30; // ✨ السماح حتى 20 متر
     if (result) {
       const { branchName, distance } = result;
       if (distance <= maxDistance) {
@@ -1008,3 +1011,42 @@ async function fetchPayslip() {
     alert("❌ فشل في تحميل تقرير المرتب");
   }
 }
+
+async function subscribeToNotifications() {
+  if (!('serviceWorker' in navigator)) return;
+  const permission = await Notification.requestPermission();
+
+  if (permission !== 'granted') {
+    console.log('🔕 Notification permission not granted');
+    return;
+  }
+
+  const registration = await navigator.serviceWorker.ready;
+
+  const vapidPublicKey = "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEHPr9q43kficoolvx4RWnsZTOc-GQzxGd5187P0V9IlzDoLQaTq_4JaOENBb2k9FyoQi3Mjxm6lhfOIjx6ezyoA";
+  const convertedVapidKey = urlBase64ToUint8Array(vapidPublicKey);
+
+  const subscription = await registration.pushManager.subscribe({
+    userVisibleOnly: true,
+    applicationServerKey: convertedVapidKey
+  });
+
+  await supabase.from('notifications_tokens').upsert({
+    employee_name: currentUser.fullname,
+    subscription
+  }, { onConflict: ['employee_name'] });
+
+  console.log('✅ Push subscription saved for', currentUser.fullname);
+}
+
+// Helper function to convert VAPID key
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding)
+    .replace(/-/g, '+')
+    .replace(/_/g, '/');
+
+  const rawData = atob(base64);
+  return Uint8Array.from([...rawData].map(char => char.charCodeAt(0)));
+}
+
