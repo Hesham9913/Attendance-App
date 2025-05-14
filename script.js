@@ -1034,14 +1034,17 @@ async function subscribeToNotifications() {
     applicationServerKey: convertedVapidKey
   });
 
-  await supabase.from('notifications_tokens').upsert({
+const { error } = await supabase.from('notifications_tokens').upsert({
   employee_name: currentUser.fullname,
-  subscription: JSON.stringify(subscription) // نحوله لنص ونخزنه
-  }, { onConflict: ['employee_name'] });
+  subscription: JSON.stringify(subscription)
+}, { onConflict: ['employee_name'] });
 
-
+if (error) {
+  console.error("❌ Error saving subscription:", error);
+} else {
   console.log('✅ Push subscription saved for', currentUser.fullname);
 }
+
 
 function urlBase64ToUint8Array(base64String) {
   const padding = '='.repeat((4 - base64String.length % 4) % 4);
