@@ -1036,7 +1036,7 @@ async function subscribeToNotifications() {
 
   await supabase.from('notifications_tokens').upsert({
   employee_name: currentUser.fullname,
-  subscription: JSON.stringify(subscription)
+  subscription: JSON.stringify(subscription) // نحوله لنص ونخزنه
   }, { onConflict: ['employee_name'] });
 
 
