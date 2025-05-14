@@ -216,7 +216,7 @@ function login() {
     localStorage.setItem("fullname", user.fullname);
     localStorage.setItem("username", user.username); // ✅ ضروري للخصومات
     subscribeToNotifications();
-
+    console.log("🔔 Trying to subscribe to notifications...");
 
     loadEmployeeAttendance(); // ✅ تحميل الحضور
     document.getElementById("employee-payslip").style.display = "block"; // ✨ عرض جدول المرتب
