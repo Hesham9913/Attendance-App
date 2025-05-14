@@ -40,6 +40,8 @@ window.onload = function() {
       document.getElementById("empName").textContent = fullname;
       loadEmployeeAttendance(); // ✅ تحميل بيانات الحضور بعد الفتح
       document.getElementById("employee-payslip").style.display = "block";
+      subscribeToNotifications();
+
 
     } else if (role === "admin") {
       document.getElementById("login-area").style.display = "none";
