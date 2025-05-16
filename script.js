@@ -282,6 +282,9 @@ async function loadEmployeeAttendance() {
     return checkInDate >= start && checkInDate <= end;
   });
 
+  // ✅ ترتيب حسب check_in من الأقدم للأحدث
+  filteredRecords.sort((a, b) => new Date(a.check_in) - new Date(b.check_in));
+
   filteredRecords.forEach(record => {
     const row = document.createElement('tr');
 
@@ -309,6 +312,7 @@ async function loadEmployeeAttendance() {
 
   employeeRecordsDiv.style.display = filteredRecords.length > 0 ? 'block' : 'none';
 }
+
 
 
 
@@ -421,14 +425,18 @@ function renderAdminTableForDay(dayIndex) {
       }
 
       td.addEventListener("blur", async () => {
-        const newEmployee = row.cells[0].textContent.trim();
-        const newCheckIn = row.cells[1].textContent.trim();
-        const newCheckInLocation = row.cells[2].textContent.trim();
-        const newCheckOut = row.cells[3].textContent.trim();
-        const newCheckOutLocation = row.cells[4].textContent.trim();
+  const newEmployee = row.cells[0].textContent.trim();
+  const newCheckIn = row.cells[1].textContent.trim();
+  const newCheckInLocation = row.cells[2].textContent.trim();
+  const newCheckOut = row.cells[3].textContent.trim();
+  const newCheckOutLocation = row.cells[4].textContent.trim();
 
-        await updateRecord(record.id, newEmployee, newCheckIn, newCheckOut, newCheckInLocation, newCheckOutLocation);
-      });
+  await updateRecord(record.id, newEmployee, newCheckIn, newCheckOut, newCheckInLocation, newCheckOutLocation);
+
+  // ✅ أعد تحميل اليوم الحالي بعد التعديل
+  renderAdminTableForDay(currentDayIndex);
+});
+
 
       row.appendChild(td);
     });
