@@ -8,7 +8,7 @@
 
   <!-- CSS -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css">
-  <link rel="stylesheet" href="style.css?v=40">
+  <link rel="stylesheet" href="style.css?v=41">
 
   <!-- JS Libraries -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
@@ -94,11 +94,10 @@
 
     <!-- سطر 1: سيرش الموظف لوحده -->
     <div class="filter-group" style="width: 100%;">
-     <div style="width: 100%;">
-      <select id="employeeFilter" multiple style="width: 100%; min-height: 45px; padding: 10px; font-size: 16px; border-radius: 10px; border: 1px solid #ccc;"></select>
-     </div>
+      <div style="width: 100%;">
+        <select id="employeeFilter" multiple style="width: 100%; min-height: 45px; padding: 10px; font-size: 16px; border-radius: 10px; border: 1px solid #ccc;"></select>
+      </div>
     </div>
-
 
     <!-- سطر 2: التاريخ من وإلى و Apply Filters -->
     <div class="filter-group" style="display: flex; flex-direction: row; gap: 10px; justify-content: center; width: 100%;">
@@ -131,15 +130,18 @@
       </thead>
       <tbody></tbody>
     </table>
+
+    <!-- ✅ Pagination Controls -->
+    <div id="paginationControls" style="margin-top: 20px; text-align: center;"></div>
   </div>
 
   <div class="logout-container" style="display: flex; justify-content: center; margin-top: 30px;">
     <button class="btn danger logout-btn" onclick="logout()">Logout</button>
   </div>
-
 </div>
 
-<script src="script.js?v=40"></script>
+
+<script src="script.js?v=41"></script>
 
 <script>
   if ('serviceWorker' in navigator) {
