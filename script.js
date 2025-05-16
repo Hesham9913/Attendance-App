@@ -40,7 +40,6 @@ window.onload = function() {
       document.getElementById("empName").textContent = fullname;
       loadEmployeeAttendance(); // ✅ تحميل بيانات الحضور بعد الفتح
       document.getElementById("employee-payslip").style.display = "block";
-      subscribeToNotifications();
 
 
     } else if (role === "admin") {
@@ -217,8 +216,6 @@ function login() {
     localStorage.setItem("role", "employee");
     localStorage.setItem("fullname", user.fullname);
     localStorage.setItem("username", user.username); // ✅ ضروري للخصومات
-    subscribeToNotifications();
-    console.log("🔔 Trying to subscribe to notifications...");
 
     loadEmployeeAttendance(); // ✅ تحميل الحضور
     document.getElementById("employee-payslip").style.display = "block"; // ✨ عرض جدول المرتب
@@ -337,6 +334,10 @@ function logout() {
   location.reload();
 }
 
+let allAttendanceRecords = [];
+let uniqueDates = [];
+let currentDayIndex = 0;
+
 async function loadAdminData() {
   const { data: records, error } = await supabase
     .from('attendance')
@@ -349,10 +350,24 @@ async function loadAdminData() {
     return;
   }
 
-  const tbody = document.querySelector("#attendanceTable tbody");
-  tbody.innerHTML = "";
+  // تخزين كل البيانات في المتغير العالمي
+  allAttendanceRecords = records;
 
-  // تجهيز قائمة الموظفين للفلاتر
+  // استخراج كل الأيام المميزة
+  const dateSet = new Set();
+  records.forEach(r => {
+    if (r.check_in) {
+      const date = new Date(r.check_in).toISOString().split("T")[0];
+      dateSet.add(date);
+    }
+  });
+
+  uniqueDates = Array.from(dateSet).sort(); // ترتيب الأيام
+  currentDayIndex = 0; // نبدأ من أول يوم
+
+  renderAdminTableForDay(currentDayIndex);
+
+  // تجهيز الفلاتر
   const uniqueEmployees = [...new Set(records.map(r => r.employee_name))];
   employeeFilter.clearChoices();
   employeeFilter.setChoices(
@@ -361,8 +376,22 @@ async function loadAdminData() {
     'label',
     false
   );
+}
 
-  records.forEach(record => {
+function renderAdminTableForDay(dayIndex) {
+  const tbody = document.querySelector("#attendanceTable tbody");
+  const date = uniqueDates[dayIndex];
+  tbody.innerHTML = "";
+
+  const filtered = allAttendanceRecords.filter(r => {
+    if (!r.check_in) return false;
+    const recordDate = new Date(r.check_in).toISOString().split("T")[0];
+    return recordDate === date;
+  });
+
+  filtered.sort((a, b) => new Date(a.check_in) - new Date(b.check_in)); // ترتيب بالتشيك إن
+
+  filtered.forEach(record => {
     const row = document.createElement("tr");
 
     [
@@ -374,31 +403,23 @@ async function loadAdminData() {
     ].forEach((field, index) => {
       const td = document.createElement("td");
 
-      // ✅ Check In أو Check Out مع تنسيق
       if ((index === 1 || index === 3) && field) {
         const span = document.createElement("span");
         span.textContent = formatDateCairo(field);
         td.appendChild(span);
-        td.contentEditable = false; // خليها مش قابلة للتعديل
-      } 
-      
-      // ✅ Check Out فاضي → زرار إدخال
-      else if (index === 3 && !field) {
+        td.contentEditable = false;
+      } else if (index === 3 && !field) {
         const btn = document.createElement("button");
         btn.textContent = "🕓";
         btn.title = "Add Check Out Time";
         btn.onclick = () => openTimePickerPopup(record.id);
         td.appendChild(btn);
         td.contentEditable = false;
-      } 
-      
-      // باقي الخانات editable
-      else {
+      } else {
         td.textContent = field || "";
         td.contentEditable = true;
       }
 
-      // ✅ لما المستخدم يغير قيمة editable
       td.addEventListener("blur", async () => {
         const newEmployee = row.cells[0].textContent.trim();
         const newCheckIn = row.cells[1].textContent.trim();
@@ -412,7 +433,6 @@ async function loadAdminData() {
       row.appendChild(td);
     });
 
-    // زرار مسح السطر
     const deleteTd = document.createElement("td");
     const deleteBtn = document.createElement("button");
     deleteBtn.textContent = "🗑️";
@@ -427,8 +447,31 @@ async function loadAdminData() {
 
     tbody.appendChild(row);
   });
+
+  renderPaginationControls();
 }
 
+function renderPaginationControls() {
+  let paginationContainer = document.getElementById("paginationControls");
+
+  if (!paginationContainer) {
+    paginationContainer = document.createElement("div");
+    paginationContainer.id = "paginationControls";
+    paginationContainer.style.marginTop = "20px";
+    paginationContainer.style.textAlign = "center";
+    document.querySelector(".table-container").appendChild(paginationContainer);
+  }
+
+  paginationContainer.innerHTML = uniqueDates.map((d, i) => {
+    const style = i === currentDayIndex ? "font-weight:bold; color:#e67e22;" : "cursor:pointer;";
+    return `<span style="${style}" onclick="changeDay(${i})">${i + 1}</span>`;
+  }).join(" | ");
+}
+
+function changeDay(index) {
+  currentDayIndex = index;
+  renderAdminTableForDay(currentDayIndex);
+}
 
 
 
@@ -1012,46 +1055,4 @@ async function fetchPayslip() {
     console.error("❌ Error fetching payslip:", error);
     alert("❌ فشل في تحميل تقرير المرتب");
   }
-}
-
-async function subscribeToNotifications() {
-  if (!('serviceWorker' in navigator)) return;
-
-  const permission = await Notification.requestPermission();
-  if (permission !== 'granted') {
-    console.log('🔕 Notification permission not granted');
-    return;
-  }
-
-  const registration = await navigator.serviceWorker.ready;
-
-  // ✅ VAPID Public Key بصيغة base64url الصحيحة
-  const vapidPublicKey = "BBydlr-0Af8WLMNC97TZVYh7YWDW9Kn3lZFd6KMKAXm38O7rjZqpNySy67ffD03yU8uZgAPs-y0XIAOnNRKgoEY";
-  const convertedVapidKey = urlBase64ToUint8Array(vapidPublicKey);
-
-  const subscription = await registration.pushManager.subscribe({
-    userVisibleOnly: true,
-    applicationServerKey: convertedVapidKey
-  });
-
-const { error } = await supabase.from('notifications_tokens').upsert({
-  employee_name: currentUser.fullname,
-  subscription: JSON.stringify(subscription)
-}, { onConflict: ['employee_name'] });
-
-if (error) {
-  console.error("❌ Error saving subscription:", error);
-} else {
-  console.log('✅ Push subscription saved for', currentUser.fullname);
-}
-
-
-function urlBase64ToUint8Array(base64String) {
-  const padding = '='.repeat((4 - base64String.length % 4) % 4);
-  const base64 = (base64String + padding)
-    .replace(/-/g, '+')
-    .replace(/_/g, '/');
-
-  const rawData = atob(base64);
-  return Uint8Array.from([...rawData].map(char => char.charCodeAt(0)));
 }
