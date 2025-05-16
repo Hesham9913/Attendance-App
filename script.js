@@ -517,6 +517,8 @@ async function deleteRecord(id) {
   }
 }
 
+
+
 function isWithinRange(position) {
   const maxDistance = 30; // مسافة السماح (متر)
 
@@ -563,6 +565,8 @@ function hideLoading() {
   document.getElementById("loadingIndicator").style.display = "none";
 }
 
+
+
 async function checkIn() {
   showLoading(); // نظهر الـ Loading Indicator
 
@@ -571,100 +575,127 @@ async function checkIn() {
   if (todayCheckIns >= 2) {
     alert("⚠️ انت النهاردة بصمت مرتين حضور متتعبناش. روح كلم مديرك");
     hideLoading();
-    return; // نوقف العملية
+    return;
   }
-  
-  // باقي الكود زي ما هو (نخش بعدين على الـ geolocation والحاجات دي)
 
-  
+  // ✅ طلب تحديد الموقع بدقة + مهلة + بدون كاش
   navigator.geolocation.getCurrentPosition(async position => {
     const result = isWithinRange(position);
-    const maxDistance = 30; // ✨ السماح حتى 20 متر
+    const maxDistance = 30; // ✨ الحد الأقصى المقبول للمسافة
+
     if (result) {
       const { branchName, distance } = result;
+
       if (distance <= maxDistance) {
         const { data, error } = await supabase
           .from('attendance')
           .select('*')
           .eq('employee_name', currentUser.fullname)
-          .is('check_out', null); // ✨ هات كل اللي ملوش Check Out
+          .is('check_out', null);
+
         if (error) {
           alert("❌ Error checking previous records!");
           console.error(error);
-          hideLoading(); // نخفي الـ Loading Indicator
+          hideLoading();
           return;
         }
+
         if (data.length > 0) {
           alert("⚠️ يا معلم ما انت باصم حضور شغل مخك. لازم تعمل انصراف الاول");
-          hideLoading(); // نخفي الـ Loading Indicator
+          hideLoading();
           return;
         }
+
         await saveCheckIn(currentUser.fullname, branchName);
         alert(`✅ احلى حضور على عنيك ! انت ${distance} meters بعيد عن ${branchName}.`);
         loadEmployeeAttendance();
       } else {
-        alert(`❌ انت ${distance} meters بعيد عن ${branchName}. اتحرك شوية و قرب من الفرع و اقفل النت و افتحه تاني عشان الgps يعمل ريفريش`);
+        alert(`❌ انت ${distance} meters بعيد عن ${branchName}. اتحرك شوية و قرب من الفرع و اقفل النت و افتحه تاني عشان الـ GPS يعمل ريفريش`);
       }
     } else {
       alert("❌ Location detection failed.");
     }
-    hideLoading(); // نخفي الـ Loading Indicator
+
+    hideLoading();
   }, error => {
-    alert("❌ ياعم ما تفتح اللوكيشن الاول متتعبناش معاك");
-    hideLoading(); // نخفي الـ Loading Indicator
+    alert("❌ ياعم ما تفتح اللوكيشن الأول متتعبناش معاك");
+    hideLoading();
+  }, {
+    enableHighAccuracy: true,
+    timeout: 10000,
+    maximumAge: 0
   });
 }
+
 
 function checkOut() {
   showLoading(); // نظهر الـ Loading Indicator
 
   navigator.geolocation.getCurrentPosition(async position => {
     const result = isWithinRange(position);
-    const maxDistance = 30; // ✨ السماح حتى 20 متر
+    const maxDistance = 30;
+
     if (result) {
       const { branchName, distance } = result;
+
       if (distance <= maxDistance) {
         const { data, error } = await supabase
           .from('attendance')
           .select('*')
           .eq('employee_name', currentUser.fullname)
           .is('check_out', null)
-          .order('check_in', { ascending: true }); // ✨ خد أقدم Check In مفتوح
+          .order('check_in', { ascending: true }); // خد أقدم Check In مفتوح
+
         if (error) {
           alert("❌ Error checking previous records!");
           console.error(error);
-          hideLoading(); // نخفي الـ Loading Indicator
+          hideLoading();
           return;
         }
+
         if (data.length === 0) {
           alert("⚠️ طيب بعقلك كده ينفع حد يعمل انصراف من غير ما يعمل حضور ؟ ما انت مبصمتش حضووووور!");
-          hideLoading(); // نخفي الـ Loading Indicator
+          hideLoading();
           return;
         }
-        // ✨ نعمل Check Out لأقدم واحد مفتوح
+
         const openRecord = data[0];
+
         const { error: checkoutError } = await supabase
           .rpc('set_checkout_time', {
             emp_name: currentUser.fullname,
             loc_name: branchName
           });
+
         if (checkoutError) {
           console.error('❌ Error during Check Out RPC:', checkoutError);
           alert('❌ Failed to Check Out.');
-          hideLoading(); // نخفي الـ Loading Indicator
+          hideLoading();
           return;
         }
+
         alert(`✅ احلى انصراف على عنيك ! انت ${distance} meters بعيد ${branchName}.`);
         loadEmployeeAttendance();
+
       } else {
-        alert(`❌ انت ${distance} meters بعيد عن ${branchName}. اتحرك شوية و قرب من الفرع و اقفل النت و افتحه تاني عشان الgps يعمل ريفريش`);
+        alert(`❌ انت ${distance} meters بعيد عن ${branchName}. اتحرك شوية و قرب من الفرع و اقفل النت و افتحه تاني عشان الـ GPS يعمل ريفريش`);
       }
+
     } else {
-      alert("❌ ياعم ما تفتح اللوكيشن الاول متتعبناش معاك");
+      alert("❌ ياعم ما تفتح اللوكيشن الأول متتعبناش معاك");
     }
-    hideLoading(); // نخفي الـ Loading Indicator
+
+    hideLoading();
+  }, error => {
+    alert("❌ ياعم ما تفتح اللوكيشن الأول متتعبناش معاك");
+    hideLoading();
+  }, {
+    enableHighAccuracy: true,
+    timeout: 10000,
+    maximumAge: 0
   });
 }
+
 
 
 function countTodayCheckIns() {
