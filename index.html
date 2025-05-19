@@ -8,7 +8,7 @@
 
   <!-- CSS -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css">
-  <link rel="stylesheet" href="style.css?v=44">
+  <link rel="stylesheet" href="style.css?v=45">
 
   <!-- JS Libraries -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
@@ -86,7 +86,7 @@
 
 
 
-  <!-- Admin Area -->
+<!-- Admin Area -->
 <div id="admin-area" class="admin-full" style="display:none;">
   <h2 class="title">Hesham's Dashboard</h2>
 
@@ -112,6 +112,14 @@
       <button class="btn success" onclick="addNewRecord()">+ Add New Record</button>
       <button class="btn warning" onclick="loadAdminData()">🔄 Refresh Table</button>
       <button class="btn info" onclick="downloadReport()">⬇️ Download Report</button>
+    </div>
+
+    <!-- ✅ سطر 4: Check In بدون Check Out -->
+    <div class="filter-group" style="margin-top: 10px; text-align: center;">
+      <label style="font-size: 15px;">
+        <input type="checkbox" id="onlyActiveCheckins" onchange="toggleActiveCheckins()">
+        Show Only Active Check-ins
+      </label>
     </div>
 
   </div>
@@ -141,7 +149,8 @@
 </div>
 
 
-<script src="script.js?v=44"></script>
+
+<script src="script.js?v=45"></script>
 
 <script>
   if ('serviceWorker' in navigator) {

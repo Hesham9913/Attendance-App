@@ -482,6 +482,71 @@ function changeDay(index) {
 }
 
 
+function toggleActiveCheckins() {
+  const onlyActive = document.getElementById("onlyActiveCheckins").checked;
+
+  if (!onlyActive) {
+    renderAdminTableForDay(currentDayIndex);
+    return;
+  }
+
+  const tbody = document.querySelector("#attendanceTable tbody");
+  tbody.innerHTML = "";
+
+  const activeRecords = allAttendanceRecords.filter(r => {
+    return r.check_in && !r.check_out;
+  });
+
+  // ✅ ترتيب حسب location ثم check_in
+  activeRecords.sort((a, b) => {
+    const locA = a.check_in_location || "";
+    const locB = b.check_in_location || "";
+    if (locA < locB) return -1;
+    if (locA > locB) return 1;
+    return new Date(a.check_in) - new Date(b.check_in);
+  });
+
+  activeRecords.forEach(record => {
+    const row = document.createElement("tr");
+
+    [
+      record.employee_name,
+      record.check_in,
+      record.check_in_location,
+      "-", // Check Out is empty
+      "-"  // Check Out Location is empty
+    ].forEach((field, index) => {
+      const td = document.createElement("td");
+      if (index === 1 && record.check_in) {
+        td.textContent = formatDateCairo(record.check_in);
+      } else {
+        td.textContent = field;
+      }
+      row.appendChild(td);
+    });
+
+    const deleteTd = document.createElement("td");
+    const deleteBtn = document.createElement("button");
+    deleteBtn.textContent = "🗑️";
+    deleteBtn.onclick = async () => {
+      if (confirm("Are you sure you want to delete this record?")) {
+        await deleteRecord(record.id);
+        row.remove();
+      }
+    };
+    deleteTd.appendChild(deleteBtn);
+    row.appendChild(deleteTd);
+
+    tbody.appendChild(row);
+  });
+
+  // نخفي الباجيناشن لو في الفلترة
+  const pagination = document.getElementById("paginationControls");
+  if (pagination) pagination.style.display = "none";
+}
+
+
+
 
 async function updateRecord(id, employeeName = null, checkIn = null, checkOut = null, checkInLocation = null, checkOutLocation = null) {
   const updates = {};
