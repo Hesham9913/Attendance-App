@@ -8,7 +8,7 @@
 
   <!-- CSS -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css">
-  <link rel="stylesheet" href="style.css?v=50">
+  <link rel="stylesheet" href="style.css?v=52">
 
   <!-- JS Libraries -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
@@ -156,7 +156,7 @@
 
 
 
-<script src="script.js?v=50"></script>
+<script src="script.js?v=52"></script>
 
 <script>
   if ('serviceWorker' in navigator) {
@@ -218,13 +218,14 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.2/html2pdf.bundle.min.js"></script>
 
-<!-- مودال ملخص المرتبات -->
+<!-- المودال نفسه زي ما هو -->
 <div id="payroll-modal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; z-index:9999; background:rgba(35,36,60,0.2);">
-  <div style="background:#fff; width:90vw; max-width:1200px; min-height:90vh; margin:3vh auto; border-radius:18px; box-shadow:0 12px 32px #0002; padding:30px; overflow-y:auto; position:relative;">
+  <div style="background:#fff; width:90vw; max-width:1200px; height:90vh; margin:3vh auto; border-radius:18px; box-shadow:0 12px 32px #0002; padding:30px; overflow-y:auto; position:relative;">
     <button onclick="closePayrollModal()" style="position:absolute; left:18px; top:12px; font-size:23px; border:none; background:none; color:#f44336; font-weight:bold; cursor:pointer;">✖</button>
     <div id="payroll-table-container"></div>
   </div>
 </div>
+
 
 
 

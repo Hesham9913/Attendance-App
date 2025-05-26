@@ -1166,13 +1166,15 @@ document.getElementById('show-payroll-summary').onclick = showPayrollModal;
 
 function showPayrollModal() {
   document.getElementById('payroll-modal').style.display = "block";
+  document.body.style.overflow = "hidden"; // يمنع تحريك الصفحة ورا المودال
   renderPayrollTable();
 }
-
 function closePayrollModal() {
   document.getElementById('payroll-modal').style.display = "none";
+  document.body.style.overflow = ""; // يرجّع سكرول الصفحة لما تقفل المودال
   document.getElementById('payroll-table-container').innerHTML = "";
 }
+
 
 // نفس كود ملخص المرتبات، كله جوة المودال
 function renderPayrollTable() {
