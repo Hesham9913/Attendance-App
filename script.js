@@ -1160,3 +1160,175 @@ async function fetchPayslip() {
     alert("❌ فشل في تحميل تقرير المرتب");
   }
 }
+
+// زرار الأدمن لعرض المرتبات
+document.getElementById('show-payroll-summary').onclick = showPayrollModal;
+
+function showPayrollModal() {
+  document.getElementById('payroll-modal').style.display = "block";
+  renderPayrollTable();
+}
+
+function closePayrollModal() {
+  document.getElementById('payroll-modal').style.display = "none";
+  document.getElementById('payroll-table-container').innerHTML = "";
+}
+
+// نفس كود ملخص المرتبات، كله جوة المودال
+function renderPayrollTable() {
+  const container = document.getElementById('payroll-table-container');
+  container.innerHTML = `<div style="text-align:center;font-size:19px;">⏳ جاري التحميل...</div>`;
+  fetch('https://inmklarxbvafddjllyga.supabase.co/functions/v1/payroll_refresh')
+    .then(res => res.json())
+    .then(json => {
+      const payslips = (json.result && Array.isArray(json.result)) ? json.result : (json.result?.result || []);
+      if (!payslips.length) {
+        container.innerHTML = "<p style='color:red;'>🚫 لا يوجد بيانات.</p>";
+        return;
+      }
+
+      // Search & Dropdown
+      let employeeOptions = payslips.map((p, idx) => ({
+        name: Array.isArray(p.employee_id) ? p.employee_id[1] : p.employee_id,
+        rowIdx: idx
+      }));
+
+      let controls = `
+      <div style="text-align:center; margin-bottom:28px;">
+        <input type="text" id="payroll-employee-search" placeholder="🔍 ابحث عن موظف..." style="width:220px; padding:8px; border-radius:8px; font-size:17px; border:1px solid #ccc; margin-left:6px;" oninput="payrollFilterDropdown()">
+        <select id="payroll-employee-dropdown" style="width:210px; padding:8px; border-radius:8px; font-size:17px; border:1px solid #ccc;" onchange="payrollScrollToEmployee()">
+          <option value="">اختر موظف...</option>
+          ${employeeOptions.map(opt=>`<option value="${opt.rowIdx}">${opt.name}</option>`).join('')}
+        </select>
+      </div>
+      `;
+
+      let table = `<table id="payroll-table" style="margin-bottom:50px;">
+        <tr>
+          <th>اسم الموظف</th>
+          <th>المرتب الأساسي</th>
+          <th>عدد أيام الإجازة</th>
+          <th>فرق ساعات العمل</th>
+          <th>صافي المرتب</th>
+          <th>الحوافز</th>
+          <th>الخصومات</th>
+          <th>التأخيرات</th>
+        </tr>`;
+
+      payslips.forEach((p, idx) => {
+        let employeeName = Array.isArray(p.employee_id) ? p.employee_id[1] : p.employee_id;
+        let salary = extractTableValue(p.x_studio_monthly_report, "المرتب الأساسي");
+        let vacationDays = extractTableValue(p.x_studio_monthly_report, "عدد أيام الإجازة");
+        let hourDiff = extractTableValue(p.x_studio_monthly_report, "فرق ساعات العمل");
+        let netSalary = extractNetSalary(p.x_studio_monthly_report);
+
+        let rewardsTable    = extractSubTable(p.x_studio_monthly_report, "الحوافز");
+        let deductionsTable = extractSubTable(p.x_studio_monthly_report, "الخصومات");
+        let delaysTable     = extractDelayTable(p.x_studio_monthly_report);
+
+        table += `
+          <tr id="payroll-employee-row-${idx}">
+            <td>${employeeName || '-'}</td>
+            <td>${salary || '-'}</td>
+            <td>${vacationDays || '-'}</td>
+            <td>${hourDiff || '-'}</td>
+            <td>${netSalary || '-'}</td>
+            <td class="details">${rewardsTable || '-'}</td>
+            <td class="details">${deductionsTable || '-'}</td>
+            <td class="details">${delaysTable || '-'}</td>
+          </tr>`;
+      });
+
+      table += '</table>';
+      container.innerHTML = controls + table;
+    });
+}
+
+// فلترة وهايلايت للموظفين جوا المودال
+window.payrollFilterDropdown = function() {
+  let val = document.getElementById('payroll-employee-search').value.trim();
+  let payslips = (window.payslipsCacheModal || []);
+  let employeeOptions = [];
+  if (payslips.length) {
+    employeeOptions = payslips.map((p, idx) => ({
+      name: Array.isArray(p.employee_id) ? p.employee_id[1] : p.employee_id,
+      rowIdx: idx
+    }));
+  } else {
+    // Get from select options if cache is not ready
+    let options = Array.from(document.getElementById('payroll-employee-dropdown').options).slice(1);
+    employeeOptions = options.map(opt => ({name: opt.text, rowIdx: opt.value}));
+  }
+  let filtered = val ? employeeOptions.filter(opt => opt.name.toLowerCase().includes(val.toLowerCase())) : employeeOptions;
+  document.getElementById('payroll-employee-dropdown').innerHTML = `<option value="">اختر موظف...</option>` + 
+    filtered.map(opt=>`<option value="${opt.rowIdx}">${opt.name}</option>`).join('');
+};
+
+window.payrollScrollToEmployee = function() {
+  let idx = document.getElementById('payroll-employee-dropdown').value;
+  if (idx === "" || isNaN(idx)) return;
+  let row = document.getElementById(`payroll-employee-row-${idx}`);
+  if (row) {
+    row.scrollIntoView({ behavior: "smooth", block: "center" });
+    document.querySelectorAll('#payroll-table .highlight-row').forEach(el => el.classList.remove('highlight-row'));
+    row.classList.add('highlight-row');
+  }
+};
+
+// اعتمد نفس دوال الاستخراج من الجدول (ممكن تحطهم فوق أو تحت الكود)
+function extractTableValue(html, label) {
+  if (!html) return '';
+  let doc = document.createElement('div');
+  doc.innerHTML = html;
+  let tds = Array.from(doc.querySelectorAll('td'));
+  for (let i = 0; i < tds.length; i++) {
+    if (tds[i].innerText.trim().replace(/[\n\r]+/g, '').includes(label)) {
+      return tds[i + 1] ? tds[i + 1].innerText.trim() : '';
+    }
+  }
+  return '';
+}
+function extractNetSalary(html) {
+  if (!html) return '';
+  let doc = document.createElement('div');
+  doc.innerHTML = html;
+  let tables = Array.from(doc.querySelectorAll('table'));
+  for (let t of tables) {
+    if (t.innerText.includes('صافي المرتب')) {
+      let tds = t.querySelectorAll('td');
+      for (let td of tds) {
+        if (td.innerText.includes('جنيه') || td.innerText.includes('EGP') || /^\d+/.test(td.innerText)) {
+          return td.innerText.trim();
+        }
+      }
+    }
+  }
+  return '';
+}
+function extractSubTable(html, tableTitle) {
+  if (!html) return '';
+  let doc = document.createElement('div');
+  doc.innerHTML = html;
+  let tables = Array.from(doc.querySelectorAll('table'));
+  for (let t of tables) {
+    let th = t.querySelector('th');
+    if (th && th.innerText.includes(tableTitle)) {
+      t.classList.add('mini-table');
+      return t.outerHTML;
+    }
+  }
+  return '';
+}
+function extractDelayTable(html) {
+  if (!html) return '';
+  let doc = document.createElement('div');
+  doc.innerHTML = html;
+  let tables = Array.from(doc.querySelectorAll('table'));
+  for (let t of tables) {
+    if (t.innerText.includes('تأخير من') || t.innerText.includes('خصم التأخيرات')) {
+      t.classList.add('mini-table');
+      return t.outerHTML;
+    }
+  }
+  return '';
+}
