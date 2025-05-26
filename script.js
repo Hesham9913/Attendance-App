@@ -1166,14 +1166,15 @@ document.getElementById('show-payroll-summary').onclick = showPayrollModal;
 
 function showPayrollModal() {
   document.getElementById('payroll-modal').style.display = "block";
-  document.body.style.overflow = "hidden"; // يمنع تحريك الصفحة ورا المودال
+  document.body.style.overflow = "hidden";
   renderPayrollTable();
 }
 function closePayrollModal() {
   document.getElementById('payroll-modal').style.display = "none";
-  document.body.style.overflow = ""; // يرجّع سكرول الصفحة لما تقفل المودال
+  document.body.style.overflow = "";
   document.getElementById('payroll-table-container').innerHTML = "";
 }
+
 
 
 // نفس كود ملخص المرتبات، كله جوة المودال
@@ -1271,7 +1272,12 @@ window.payrollScrollToEmployee = function() {
   if (idx === "" || isNaN(idx)) return;
   let row = document.getElementById(`payroll-employee-row-${idx}`);
   if (row) {
-    row.scrollIntoView({ behavior: "smooth", block: "center" });
+    // سكرول حقيقي جوا الكونتينر نفسه
+    let container = document.getElementById('payroll-table-container');
+    container.scrollTo({
+      top: row.offsetTop - 100, // ينزله شوية تحت الهيدر
+      behavior: "smooth"
+    });
     document.querySelectorAll('#payroll-table .highlight-row').forEach(el => el.classList.remove('highlight-row'));
     row.classList.add('highlight-row');
   }
