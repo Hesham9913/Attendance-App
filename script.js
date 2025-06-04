@@ -196,7 +196,7 @@ const users = [
   { username: "Ahmed El-Sayed", password: "LS72361", role: "employee", fullname: "Ahmed El-Sayed" },
   { username: "Soliman Ragab", password: "IB37458", role: "employee", fullname: "Soliman Ragab" },
   { username: "Ahmed Osama", password: "HO41578", role: "employee", fullname: "Ahmed Osama" },
-  { username: "Mohamed Wafy", password: "EW36218", role: "employee", fullname: "Mohamed Wafy" },
+  { username: "Adam El-Tabaay", password: "MT36218", role: "employee", fullname: "Adam El-Tabaay" },
   
 ];
 
