@@ -436,34 +436,32 @@ function renderAdminTableForDay(dayIndex) {
       }
 
       td.addEventListener("blur", async () => {
-  const newEmployee = row.cells[0].textContent.trim();
-  const newCheckIn = row.cells[1].textContent.trim();
-  const newCheckInLocation = row.cells[2].textContent.trim();
-  const newCheckOut = row.cells[3].textContent.trim();
-  const newCheckOutLocation = row.cells[4].textContent.trim();
+        const newEmployee = row.cells[0].textContent.trim();
+        const newCheckIn = row.cells[1].textContent.trim();
+        const newCheckInLocation = row.cells[2].textContent.trim();
+        const newCheckOut = row.cells[3].textContent.trim();
+        const newCheckOutLocation = row.cells[4].textContent.trim();
 
-  await updateRecord(record.id, newEmployee, newCheckIn, newCheckOut, newCheckInLocation, newCheckOutLocation);
+        await updateRecord(record.id, newEmployee, newCheckIn, newCheckOut, newCheckInLocation, newCheckOutLocation);
 
-  // ✅ أعد تحميل اليوم الحالي بعد التعديل
-  renderAdminTableForDay(currentDayIndex);
-});
-
+        // ✅ أعد تحميل اليوم الحالي بعد التعديل
+        renderAdminTableForDay(currentDayIndex);
+      });
 
       row.appendChild(td);
     });
 
+    // ===== زرار التعديل وزرار الحذف =====
+    const actionTd = document.createElement("td");
 
-// === زرار التعديل وزرار الحذف ===
-
-    // زرار التعديل ✏️
+    // زر التعديل ✏️
     const editBtn = document.createElement("button");
     editBtn.textContent = "✏️";
     editBtn.title = "Edit Check In/Out";
     editBtn.onclick = () => openEditPopup(record);
-    deleteTd.appendChild(editBtn);
+    actionTd.appendChild(editBtn);
 
-
-    const deleteTd = document.createElement("td");
+    // زر الحذف 🗑️
     const deleteBtn = document.createElement("button");
     deleteBtn.textContent = "🗑️";
     deleteBtn.onclick = async () => {
@@ -472,8 +470,9 @@ function renderAdminTableForDay(dayIndex) {
         row.remove();
       }
     };
-    deleteTd.appendChild(deleteBtn);
-    row.appendChild(deleteTd);
+    actionTd.appendChild(deleteBtn);
+
+    row.appendChild(actionTd);
 
     tbody.appendChild(row);
   });
@@ -547,7 +546,15 @@ function toggleActiveCheckins() {
       row.appendChild(td);
     });
 
-    const deleteTd = document.createElement("td");
+    const actionTd = document.createElement("td");
+    // زر التعديل ✏️
+    const editBtn = document.createElement("button");
+    editBtn.textContent = "✏️";
+    editBtn.title = "Edit Check In/Out";
+    editBtn.onclick = () => openEditPopup(record);
+    actionTd.appendChild(editBtn);
+
+    // زر الحذف 🗑️
     const deleteBtn = document.createElement("button");
     deleteBtn.textContent = "🗑️";
     deleteBtn.onclick = async () => {
@@ -556,8 +563,9 @@ function toggleActiveCheckins() {
         row.remove();
       }
     };
-    deleteTd.appendChild(deleteBtn);
-    row.appendChild(deleteTd);
+    actionTd.appendChild(deleteBtn);
+
+    row.appendChild(actionTd);
 
     tbody.appendChild(row);
   });
@@ -565,6 +573,63 @@ function toggleActiveCheckins() {
   // نخفي الباجيناشن لو في الفلترة
   const pagination = document.getElementById("paginationControls");
   if (pagination) pagination.style.display = "none";
+}
+
+// دالة البوب أب بتاعة التعديل ✏️ 
+function openEditPopup(record) {
+  const overlay = document.createElement("div");
+  overlay.style.position = "fixed";
+  overlay.style.top = "0";
+  overlay.style.left = "0";
+  overlay.style.width = "100%";
+  overlay.style.height = "100%";
+  overlay.style.backgroundColor = "rgba(0,0,0,0.4)";
+  overlay.style.display = "flex";
+  overlay.style.justifyContent = "center";
+  overlay.style.alignItems = "center";
+  overlay.style.zIndex = "9999";
+
+  const popup = document.createElement("div");
+  popup.style.background = "#fff";
+  popup.style.padding = "22px";
+  popup.style.borderRadius = "10px";
+  popup.style.boxShadow = "0 0 16px #0002";
+  popup.style.minWidth = "340px";
+  popup.innerHTML = `
+    <h3 style="margin-top:0;">🛠️ Edit Check In / Out</h3>
+    <label>Check In: <input type="datetime-local" id="editCheckIn"></label><br><br>
+    <label>Check Out: <input type="datetime-local" id="editCheckOut"></label><br><br>
+    <button id="editSaveBtn">💾 Save</button>
+    <button id="editCancelBtn">❌ Cancel</button>
+  `;
+
+  overlay.appendChild(popup);
+  document.body.appendChild(overlay);
+
+  // Prefill data
+  document.getElementById("editCheckIn").value = record.check_in
+    ? new Date(record.check_in).toISOString().slice(0, 16)
+    : "";
+  document.getElementById("editCheckOut").value = record.check_out
+    ? new Date(record.check_out).toISOString().slice(0, 16)
+    : "";
+
+  document.getElementById("editCancelBtn").onclick = () => {
+    document.body.removeChild(overlay);
+  };
+
+  document.getElementById("editSaveBtn").onclick = async () => {
+    const checkInVal = document.getElementById("editCheckIn").value;
+    const checkOutVal = document.getElementById("editCheckOut").value;
+
+    // بنحط القيمة الجديدة (أو null لو فاضي)
+    const newCheckIn = checkInVal ? new Date(checkInVal).toISOString() : null;
+    const newCheckOut = checkOutVal ? new Date(checkOutVal).toISOString() : null;
+
+    await updateRecord(record.id, null, newCheckIn, newCheckOut, null, null);
+    loadAdminData();
+    document.body.removeChild(overlay);
+  };
 }
 
 
@@ -1361,60 +1426,4 @@ function extractDelayTable(html) {
     }
   }
   return '';
-}
-
-function openEditPopup(record) {
-  const overlay = document.createElement("div");
-  overlay.style.position = "fixed";
-  overlay.style.top = "0";
-  overlay.style.left = "0";
-  overlay.style.width = "100%";
-  overlay.style.height = "100%";
-  overlay.style.backgroundColor = "rgba(0,0,0,0.4)";
-  overlay.style.display = "flex";
-  overlay.style.justifyContent = "center";
-  overlay.style.alignItems = "center";
-  overlay.style.zIndex = "9999";
-
-  const popup = document.createElement("div");
-  popup.style.background = "#fff";
-  popup.style.padding = "22px";
-  popup.style.borderRadius = "10px";
-  popup.style.boxShadow = "0 0 16px #0002";
-  popup.style.minWidth = "340px";
-  popup.innerHTML = `
-    <h3 style="margin-top:0;">🛠️ Edit Check In / Out</h3>
-    <label>Check In: <input type="datetime-local" id="editCheckIn"></label><br><br>
-    <label>Check Out: <input type="datetime-local" id="editCheckOut"></label><br><br>
-    <button id="editSaveBtn">💾 Save</button>
-    <button id="editCancelBtn">❌ Cancel</button>
-  `;
-
-  overlay.appendChild(popup);
-  document.body.appendChild(overlay);
-
-  // Prefill data
-  document.getElementById("editCheckIn").value = record.check_in
-    ? new Date(record.check_in).toISOString().slice(0, 16)
-    : "";
-  document.getElementById("editCheckOut").value = record.check_out
-    ? new Date(record.check_out).toISOString().slice(0, 16)
-    : "";
-
-  document.getElementById("editCancelBtn").onclick = () => {
-    document.body.removeChild(overlay);
-  };
-
-  document.getElementById("editSaveBtn").onclick = async () => {
-    const checkInVal = document.getElementById("editCheckIn").value;
-    const checkOutVal = document.getElementById("editCheckOut").value;
-
-    // بنحط القيمة الجديدة (أو null لو فاضي)
-    const newCheckIn = checkInVal ? new Date(checkInVal).toISOString() : null;
-    const newCheckOut = checkOutVal ? new Date(checkOutVal).toISOString() : null;
-
-    await updateRecord(record.id, null, newCheckIn, newCheckOut, null, null);
-    loadAdminData();
-    document.body.removeChild(overlay);
-  };
 }
