@@ -436,23 +436,32 @@ function renderAdminTableForDay(dayIndex) {
       }
 
       td.addEventListener("blur", async () => {
-  const newEmployee = row.cells[0].textContent.trim();
-  const newCheckIn = row.cells[1].textContent.trim();
-  const newCheckInLocation = row.cells[2].textContent.trim();
-  const newCheckOut = row.cells[3].textContent.trim();
-  const newCheckOutLocation = row.cells[4].textContent.trim();
+        const newEmployee = row.cells[0].textContent.trim();
+        const newCheckIn = row.cells[1].textContent.trim();
+        const newCheckInLocation = row.cells[2].textContent.trim();
+        const newCheckOut = row.cells[3].textContent.trim();
+        const newCheckOutLocation = row.cells[4].textContent.trim();
 
-  await updateRecord(record.id, newEmployee, newCheckIn, newCheckOut, newCheckInLocation, newCheckOutLocation);
+        await updateRecord(record.id, newEmployee, newCheckIn, newCheckOut, newCheckInLocation, newCheckOutLocation);
 
-  // ✅ أعد تحميل اليوم الحالي بعد التعديل
-  renderAdminTableForDay(currentDayIndex);
-});
-
+        // ✅ أعد تحميل اليوم الحالي بعد التعديل
+        renderAdminTableForDay(currentDayIndex);
+      });
 
       row.appendChild(td);
     });
 
+    // === زرار التعديل وزرار الحذف ===
     const deleteTd = document.createElement("td");
+
+    // زرار التعديل ✏️
+    const editBtn = document.createElement("button");
+    editBtn.textContent = "✏️";
+    editBtn.title = "Edit Check In/Out";
+    editBtn.onclick = () => openEditPopup(record);
+    deleteTd.appendChild(editBtn);
+
+    // زرار الحذف 🗑️
     const deleteBtn = document.createElement("button");
     deleteBtn.textContent = "🗑️";
     deleteBtn.onclick = async () => {
@@ -462,6 +471,7 @@ function renderAdminTableForDay(dayIndex) {
       }
     };
     deleteTd.appendChild(deleteBtn);
+
     row.appendChild(deleteTd);
 
     tbody.appendChild(row);
@@ -470,91 +480,6 @@ function renderAdminTableForDay(dayIndex) {
   renderPaginationControls();
 }
 
-function renderPaginationControls() {
-  let paginationContainer = document.getElementById("paginationControls");
-
-  if (!paginationContainer) {
-    paginationContainer = document.createElement("div");
-    paginationContainer.id = "paginationControls";
-    paginationContainer.style.marginTop = "20px";
-    paginationContainer.style.textAlign = "center";
-    document.querySelector(".table-container").appendChild(paginationContainer);
-  }
-
-  paginationContainer.innerHTML = uniqueDates.map((d, i) => {
-    const style = i === currentDayIndex ? "font-weight:bold; color:#e67e22;" : "cursor:pointer;";
-    return `<span style="${style}" onclick="changeDay(${i})">${i + 1}</span>`;
-  }).join(" | ");
-}
-
-function changeDay(index) {
-  currentDayIndex = index;
-  renderAdminTableForDay(currentDayIndex);
-}
-
-
-function toggleActiveCheckins() {
-  const onlyActive = document.getElementById("onlyActiveCheckins").checked;
-
-  if (!onlyActive) {
-    renderAdminTableForDay(currentDayIndex);
-    return;
-  }
-
-  const tbody = document.querySelector("#attendanceTable tbody");
-  tbody.innerHTML = "";
-
-  const activeRecords = allAttendanceRecords.filter(r => {
-    return r.check_in && !r.check_out;
-  });
-
-  // ✅ ترتيب حسب location ثم check_in
-  activeRecords.sort((a, b) => {
-    const locA = a.check_in_location || "";
-    const locB = b.check_in_location || "";
-    if (locA < locB) return -1;
-    if (locA > locB) return 1;
-    return new Date(a.check_in) - new Date(b.check_in);
-  });
-
-  activeRecords.forEach(record => {
-    const row = document.createElement("tr");
-
-    [
-      record.employee_name,
-      record.check_in,
-      record.check_in_location,
-      "-", // Check Out is empty
-      "-"  // Check Out Location is empty
-    ].forEach((field, index) => {
-      const td = document.createElement("td");
-      if (index === 1 && record.check_in) {
-        td.textContent = formatDateCairo(record.check_in);
-      } else {
-        td.textContent = field;
-      }
-      row.appendChild(td);
-    });
-
-    const deleteTd = document.createElement("td");
-    const deleteBtn = document.createElement("button");
-    deleteBtn.textContent = "🗑️";
-    deleteBtn.onclick = async () => {
-      if (confirm("Are you sure you want to delete this record?")) {
-        await deleteRecord(record.id);
-        row.remove();
-      }
-    };
-    deleteTd.appendChild(deleteBtn);
-    row.appendChild(deleteTd);
-
-    tbody.appendChild(row);
-  });
-
-  // نخفي الباجيناشن لو في الفلترة
-  const pagination = document.getElementById("paginationControls");
-  if (pagination) pagination.style.display = "none";
-}
 
 
 
@@ -1350,4 +1275,60 @@ function extractDelayTable(html) {
     }
   }
   return '';
+}
+
+function openEditPopup(record) {
+  const overlay = document.createElement("div");
+  overlay.style.position = "fixed";
+  overlay.style.top = "0";
+  overlay.style.left = "0";
+  overlay.style.width = "100%";
+  overlay.style.height = "100%";
+  overlay.style.backgroundColor = "rgba(0,0,0,0.4)";
+  overlay.style.display = "flex";
+  overlay.style.justifyContent = "center";
+  overlay.style.alignItems = "center";
+  overlay.style.zIndex = "9999";
+
+  const popup = document.createElement("div");
+  popup.style.background = "#fff";
+  popup.style.padding = "22px";
+  popup.style.borderRadius = "10px";
+  popup.style.boxShadow = "0 0 16px #0002";
+  popup.style.minWidth = "340px";
+  popup.innerHTML = `
+    <h3 style="margin-top:0;">🛠️ Edit Check In / Out</h3>
+    <label>Check In: <input type="datetime-local" id="editCheckIn"></label><br><br>
+    <label>Check Out: <input type="datetime-local" id="editCheckOut"></label><br><br>
+    <button id="editSaveBtn">💾 Save</button>
+    <button id="editCancelBtn">❌ Cancel</button>
+  `;
+
+  overlay.appendChild(popup);
+  document.body.appendChild(overlay);
+
+  // Prefill data
+  document.getElementById("editCheckIn").value = record.check_in
+    ? new Date(record.check_in).toISOString().slice(0, 16)
+    : "";
+  document.getElementById("editCheckOut").value = record.check_out
+    ? new Date(record.check_out).toISOString().slice(0, 16)
+    : "";
+
+  document.getElementById("editCancelBtn").onclick = () => {
+    document.body.removeChild(overlay);
+  };
+
+  document.getElementById("editSaveBtn").onclick = async () => {
+    const checkInVal = document.getElementById("editCheckIn").value;
+    const checkOutVal = document.getElementById("editCheckOut").value;
+
+    // بنحط القيمة الجديدة (أو null لو فاضي)
+    const newCheckIn = checkInVal ? new Date(checkInVal).toISOString() : null;
+    const newCheckOut = checkOutVal ? new Date(checkOutVal).toISOString() : null;
+
+    await updateRecord(record.id, null, newCheckIn, newCheckOut, null, null);
+    loadAdminData();
+    document.body.removeChild(overlay);
+  };
 }
