@@ -608,11 +608,11 @@ function openEditPopup(record) {
 
   // Prefill data
   document.getElementById("editCheckIn").value = record.check_in
-    ? new Date(record.check_in).toISOString().slice(0, 16)
-    : "";
+  ? toDatetimeLocal(record.check_in)
+  : "";
   document.getElementById("editCheckOut").value = record.check_out
-    ? new Date(record.check_out).toISOString().slice(0, 16)
-    : "";
+  ? toDatetimeLocal(record.check_out)
+  : "";
 
   document.getElementById("editCancelBtn").onclick = () => {
     document.body.removeChild(overlay);
@@ -1427,3 +1427,13 @@ function extractDelayTable(html) {
   }
   return '';
 }
+
+function toDatetimeLocal(dateString) {
+  if (!dateString) return "";
+  const date = new Date(dateString);
+  const offset = date.getTimezoneOffset();
+  const local = new Date(date.getTime() - offset * 60 * 1000);
+  return local.toISOString().slice(0,16);
+}
+
+
