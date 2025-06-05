@@ -380,7 +380,7 @@ async function loadAdminData() {
   uniqueDates = Array.from(dateSet).sort(); // ترتيب الأيام
   currentDayIndex = 0; // نبدأ من أول يوم
 
-    renderAdminTableForDay(currentDayIndex);
+  renderAdminTableForDay(currentDayIndex);
 
   // تجهيز الفلاتر
   const uniqueEmployees = [...new Set(records.map(r => r.employee_name))];
@@ -454,7 +454,6 @@ function renderAdminTableForDay(dayIndex) {
 
 
 // === زرار التعديل وزرار الحذف ===
-    const deleteTd = document.createElement("td");
 
     // زرار التعديل ✏️
     const editBtn = document.createElement("button");
@@ -567,6 +566,8 @@ function toggleActiveCheckins() {
   const pagination = document.getElementById("paginationControls");
   if (pagination) pagination.style.display = "none";
 }
+
+
 
 
 async function updateRecord(id, employeeName = null, checkIn = null, checkOut = null, checkInLocation = null, checkOutLocation = null) {
