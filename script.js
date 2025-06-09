@@ -471,27 +471,19 @@ async function applyFilters() {
     });
   }
 
-  let filteredDatesSet = new Set();
-  filtered.forEach(r => {
-    if (r.check_in) {
-      const date = new Date(r.check_in).toISOString().split("T")[0];
-      filteredDatesSet.add(date);
-    }
-  });
-  let filteredDates = Array.from(filteredDatesSet).sort();
-
-  if (filteredDates.length > 0) {
+  if (filtered.length > 0) {
     window.filteredMode = true;
     window.filteredData = filtered;
-    window.filteredDates = filteredDates;
-    window.currentFilteredDayIndex = 0;
-    renderFilteredTableForDay(0);
-    renderFilteredPaginationControls();
+    // 👇 جدول واحد لكل النتائج
+    renderFilteredTableAll();
+    // 👇 أخفي الباجيناشن أو امسحه
+    document.getElementById("paginationControls").innerHTML = '';
   } else {
     document.querySelector("#attendanceTable tbody").innerHTML = '<tr><td colspan="7" style="text-align:center;">لا توجد بيانات</td></tr>';
     document.getElementById("paginationControls").innerHTML = '';
   }
 }
+
 
 // =============== 🔥🔥 renderFilteredTableForDay (احترافي) 🔥🔥 ===============
 function renderFilteredTableForDay(dayIndex) {
@@ -632,19 +624,156 @@ function renderPaginationControls() {
     const [year, month, day] = d.split("-");
     const key = `${year}-${month}`;
     if (!months[key]) months[key] = [];
-    months[key].push({ date: d, idx: i });
+    months[key].push({ date: d, idx: i, day });
   });
   let html = "";
-  Object.entries(months).forEach(([month, days], mIdx) => {
+  Object.entries(months).forEach(([month, days]) => {
     html += `<div style="margin-bottom:7px;">${month}: `;
     html += days.map((d, i) => {
+      // ابدأ من 1 في كل شهر
+      const pageNum = i + 1;
       const style = d.idx === currentDayIndex ? "font-weight:bold; color:#e67e22;" : "cursor:pointer;";
-      return `<span style="${style}" onclick="changeDay(${d.idx})">${d.idx + 1}</span>`;
+      return `<span style="${style}" onclick="changeDay(${d.idx})">${pageNum}</span>`;
     }).join(" | ");
     html += "</div>";
   });
   paginationContainer.innerHTML = html;
-} // ← هنا كان لازم يتقفل القوس
+}
+
+function changeDay(index) {
+  currentDayIndex = index;
+  renderAdminTableForDay(currentDayIndex);
+}
+
+
+function toggleActiveCheckins() {
+  const onlyActive = document.getElementById("onlyActiveCheckins").checked;
+
+  if (!onlyActive) {
+    renderAdminTableForDay(currentDayIndex);
+    return;
+  }
+
+  const tbody = document.querySelector("#attendanceTable tbody");
+  tbody.innerHTML = "";
+
+  const activeRecords = allAttendanceRecords.filter(r => {
+    return r.check_in && !r.check_out;
+  });
+
+  // ✅ ترتيب حسب location ثم check_in
+  activeRecords.sort((a, b) => {
+    const locA = a.check_in_location || "";
+    const locB = b.check_in_location || "";
+    if (locA < locB) return -1;
+    if (locA > locB) return 1;
+    return new Date(a.check_in) - new Date(b.check_in);
+  });
+
+  activeRecords.forEach(record => {
+    const row = document.createElement("tr");
+
+    [
+      record.employee_name,
+      record.check_in,
+      record.check_in_location,
+      "-", // Check Out is empty
+      "-"  // Check Out Location is empty
+    ].forEach((field, index) => {
+      const td = document.createElement("td");
+      if (index === 1 && record.check_in) {
+        td.textContent = formatDateCairo(record.check_in);
+      } else {
+        td.textContent = field;
+      }
+      row.appendChild(td);
+    });
+
+    const actionTd = document.createElement("td");
+    // زر التعديل ✏️
+    const editBtn = document.createElement("button");
+    editBtn.textContent = "✏️";
+    editBtn.title = "Edit Check In/Out";
+    editBtn.onclick = () => openEditPopup(record);
+    actionTd.appendChild(editBtn);
+
+    // زر الحذف 🗑️
+    const deleteBtn = document.createElement("button");
+    deleteBtn.textContent = "🗑️";
+    deleteBtn.onclick = async () => {
+      if (confirm("Are you sure you want to delete this record?")) {
+        await deleteRecord(record.id);
+        row.remove();
+      }
+    };
+    actionTd.appendChild(deleteBtn);
+
+    row.appendChild(actionTd);
+
+    tbody.appendChild(row);
+  });
+
+  // نخفي الباجيناشن لو في الفلترة
+  const pagination = document.getElementById("paginationControls");
+  if (pagination) pagination.style.display = "none";
+}
+
+// دالة البوب أب بتاعة التعديل ✏️ 
+function openEditPopup(record) {
+  const overlay = document.createElement("div");
+  overlay.style.position = "fixed";
+  overlay.style.top = "0";
+  overlay.style.left = "0";
+  overlay.style.width = "100%";
+  overlay.style.height = "100%";
+  overlay.style.backgroundColor = "rgba(0,0,0,0.4)";
+  overlay.style.display = "flex";
+  overlay.style.justifyContent = "center";
+  overlay.style.alignItems = "center";
+  overlay.style.zIndex = "9999";
+
+  const popup = document.createElement("div");
+  popup.style.background = "#fff";
+  popup.style.padding = "22px";
+  popup.style.borderRadius = "10px";
+  popup.style.boxShadow = "0 0 16px #0002";
+  popup.style.minWidth = "340px";
+  popup.innerHTML = `
+    <h3 style="margin-top:0;">🛠️ Edit Check In / Out</h3>
+    <label>Check In: <input type="datetime-local" id="editCheckIn"></label><br><br>
+    <label>Check Out: <input type="datetime-local" id="editCheckOut"></label><br><br>
+    <button id="editSaveBtn">💾 Save</button>
+    <button id="editCancelBtn">❌ Cancel</button>
+  `;
+
+  overlay.appendChild(popup);
+  document.body.appendChild(overlay);
+
+  // Prefill data
+  document.getElementById("editCheckIn").value = record.check_in
+  ? toDatetimeLocal(record.check_in)
+  : "";
+  document.getElementById("editCheckOut").value = record.check_out
+  ? toDatetimeLocal(record.check_out)
+  : "";
+
+  document.getElementById("editCancelBtn").onclick = () => {
+    document.body.removeChild(overlay);
+  };
+
+  document.getElementById("editSaveBtn").onclick = async () => {
+    const checkInVal = document.getElementById("editCheckIn").value;
+    const checkOutVal = document.getElementById("editCheckOut").value;
+
+    // بنحط القيمة الجديدة (أو null لو فاضي)
+    const newCheckIn = checkInVal ? new Date(checkInVal).toISOString() : null;
+    const newCheckOut = checkOutVal ? new Date(checkOutVal).toISOString() : null;
+
+    await updateRecord(record.id, null, newCheckIn, newCheckOut, null, null);
+    loadAdminData();
+    document.body.removeChild(overlay);
+  };
+}
 
 
 
@@ -973,121 +1102,6 @@ async function downloadReport() {
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
-}
-
-
-
-
-// ==== Apply Filters احترافي ==== //
-async function applyFilters() {
-  const selectedEmployees = employeeFilter.getValue().map(emp => emp.value);
-  const startDate = document.getElementById("startDateFilter").value;
-  const endDate = document.getElementById("endDateFilter").value;
-
-  const { data: records, error } = await supabase
-    .from('attendance')
-    .select('*');
-
-  if (error) {
-    alert('❌ Error loading data!');
-    console.error(error);
-    return;
-  }
-
-  // فلترة الداتا
-  let filtered = records;
-  if (selectedEmployees.length > 0) {
-    filtered = filtered.filter(r => selectedEmployees.includes(r.employee_name));
-  }
-  if (startDate && endDate) {
-    filtered = filtered.filter(r => {
-      if (!r.check_in) return false;
-      const recordDate = new Date(r.check_in).toISOString().split('T')[0];
-      return recordDate >= startDate && recordDate <= endDate;
-    });
-  }
-
-  // إعادة استخراج uniqueDates للفلتر الجديد
-  let filteredDatesSet = new Set();
-  filtered.forEach(r => {
-    if (r.check_in) {
-      const date = new Date(r.check_in).toISOString().split("T")[0];
-      filteredDatesSet.add(date);
-    }
-  });
-  // ترتيب الأيام
-  let filteredDates = Array.from(filteredDatesSet).sort();
-
-  // لو لسه فيه أيام - اعرض أول يوم
-  if (filteredDates.length > 0) {
-    window.filteredMode = true; // وضع الفلتر
-    window.filteredData = filtered;
-    window.filteredDates = filteredDates;
-    window.currentFilteredDayIndex = 0;
-    renderFilteredTableForDay(0);
-    renderFilteredPaginationControls();
-  } else {
-    // لو مفيش داتا
-    document.querySelector("#attendanceTable tbody").innerHTML = '<tr><td colspan="7" style="text-align:center;">لا توجد بيانات</td></tr>';
-    document.getElementById("paginationControls").innerHTML = '';
-  }
-}
-
-// دالة البوب أب بتاعة التعديل ✏️ 
-function openEditPopup(record) {
-  const overlay = document.createElement("div");
-  overlay.style.position = "fixed";
-  overlay.style.top = "0";
-  overlay.style.left = "0";
-  overlay.style.width = "100%";
-  overlay.style.height = "100%";
-  overlay.style.backgroundColor = "rgba(0,0,0,0.4)";
-  overlay.style.display = "flex";
-  overlay.style.justifyContent = "center";
-  overlay.style.alignItems = "center";
-  overlay.style.zIndex = "9999";
-
-  const popup = document.createElement("div");
-  popup.style.background = "#fff";
-  popup.style.padding = "22px";
-  popup.style.borderRadius = "10px";
-  popup.style.boxShadow = "0 0 16px #0002";
-  popup.style.minWidth = "340px";
-  popup.innerHTML = `
-    <h3 style="margin-top:0;">🛠️ Edit Check In / Out</h3>
-    <label>Check In: <input type="datetime-local" id="editCheckIn"></label><br><br>
-    <label>Check Out: <input type="datetime-local" id="editCheckOut"></label><br><br>
-    <button id="editSaveBtn">💾 Save</button>
-    <button id="editCancelBtn">❌ Cancel</button>
-  `;
-
-  overlay.appendChild(popup);
-  document.body.appendChild(overlay);
-
-  // Prefill data
-  document.getElementById("editCheckIn").value = record.check_in
-  ? toDatetimeLocal(record.check_in)
-  : "";
-  document.getElementById("editCheckOut").value = record.check_out
-  ? toDatetimeLocal(record.check_out)
-  : "";
-
-  document.getElementById("editCancelBtn").onclick = () => {
-    document.body.removeChild(overlay);
-  };
-
-  document.getElementById("editSaveBtn").onclick = async () => {
-    const checkInVal = document.getElementById("editCheckIn").value;
-    const checkOutVal = document.getElementById("editCheckOut").value;
-
-    // بنحط القيمة الجديدة (أو null لو فاضي)
-    const newCheckIn = checkInVal ? new Date(checkInVal).toISOString() : null;
-    const newCheckOut = checkOutVal ? new Date(checkOutVal).toISOString() : null;
-
-    await updateRecord(record.id, null, newCheckIn, newCheckOut, null, null);
-    loadAdminData();
-    document.body.removeChild(overlay);
-  };
 }
 
 
@@ -1498,3 +1512,82 @@ function calcWorkDuration(checkIn, checkOut) {
     return "-";
   }
 }
+
+function renderFilteredTableAll() {
+  const tbody = document.querySelector("#attendanceTable tbody");
+  tbody.innerHTML = "";
+
+  // رتب السجلات حسب التاريخ والتشيك إن
+  let filtered = window.filteredData.slice().sort((a, b) => new Date(a.check_in) - new Date(b.check_in));
+
+  filtered.forEach(record => {
+    const row = document.createElement("tr");
+
+    [
+      record.employee_name,
+      record.check_in,
+      record.check_in_location,
+      record.check_out,
+      record.check_out_location
+    ].forEach((field, index) => {
+      const td = document.createElement("td");
+      if ((index === 1 || index === 3) && field) {
+        const span = document.createElement("span");
+        span.textContent = formatDateCairo(field);
+        td.appendChild(span);
+        td.contentEditable = false;
+      } else if (index === 3 && !field) {
+        const btn = document.createElement("button");
+        btn.textContent = "🕓";
+        btn.title = "Add Check Out Time";
+        btn.onclick = () => openTimePickerPopup(record.id);
+        td.appendChild(btn);
+        td.contentEditable = false;
+      } else {
+        td.textContent = field || "";
+        td.contentEditable = true;
+      }
+      td.addEventListener("blur", async () => {
+        // Update as usual
+        const newEmployee = row.cells[0].textContent.trim();
+        const newCheckIn = row.cells[1].textContent.trim();
+        const newCheckInLocation = row.cells[2].textContent.trim();
+        const newCheckOut = row.cells[3].textContent.trim();
+        const newCheckOutLocation = row.cells[4].textContent.trim();
+        await updateRecord(record.id, newEmployee, newCheckIn, newCheckOut, newCheckInLocation, newCheckOutLocation);
+        renderFilteredTableAll(); // ريفرش للجدول كله بعد التعديل
+      });
+      row.appendChild(td);
+    });
+    // مدة العمل
+    const durationTd = document.createElement("td");
+    durationTd.textContent = calcWorkDuration(record.check_in, record.check_out);
+    durationTd.style.fontWeight = 'bold';
+    row.appendChild(durationTd);
+
+    // أكشنز
+    const actionTd = document.createElement("td");
+    const editBtn = document.createElement("button");
+    editBtn.textContent = "✏️";
+    editBtn.title = "Edit Check In/Out";
+    editBtn.onclick = () => openEditPopup(record);
+    actionTd.appendChild(editBtn);
+
+    const deleteBtn = document.createElement("button");
+    deleteBtn.textContent = "🗑️";
+    deleteBtn.onclick = async () => {
+      if (confirm("Are you sure you want to delete this record?")) {
+        await deleteRecord(record.id);
+        row.remove();
+        renderFilteredTableAll();
+      }
+    };
+    actionTd.appendChild(deleteBtn);
+    row.appendChild(actionTd);
+    tbody.appendChild(row);
+  });
+
+  // اختفي الباجيناشن لأنك بتعرض كله مرة واحدة
+  document.getElementById("paginationControls").innerHTML = '';
+}
+
