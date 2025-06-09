@@ -1107,17 +1107,43 @@ async function downloadReport() {
     return;
   }
 
-  // 👇 تغيير عنوان الأعمدة للتوضيح إنه بتوقيت القاهرة
-  let csvContent = "Employee,Check In (Cairo),Check In Location,Check Out (Cairo),Check Out Location\n";
+  // 👇 الترتيب الأبجدي للموظفين، وبعد كده ترتيب كل موظف بالتاريخ
+  filtered.sort((a, b) => {
+    // ترتيب بالاسم
+    const nameA = (a.employee_name || "").toLowerCase();
+    const nameB = (b.employee_name || "").toLowerCase();
+    if (nameA < nameB) return -1;
+    if (nameA > nameB) return 1;
+    // لو نفس الموظف، رتب حسب check_in
+    const dateA = a.check_in ? new Date(a.check_in) : new Date(0);
+    const dateB = b.check_in ? new Date(b.check_in) : new Date(0);
+    return dateA - dateB;
+  });
+
+  let csvContent = "Employee,Check In (Cairo),Check Out (Cairo),Duration\n";
 
   filtered.forEach(record => {
     const employee = record.employee_name || "";
     const checkIn = record.check_in ? `="${formatDateCairo(record.check_in)}"` : "";
-    const checkInLoc = record.check_in_location || "";
     const checkOut = record.check_out ? `="${formatDateCairo(record.check_out)}"` : "";
-    const checkOutLoc = record.check_out_location || "";
 
-    csvContent += `"${employee}",${checkIn},"${checkInLoc}",${checkOut},"${checkOutLoc}"\n`;
+    // حساب المدة بالساعات والدقايق (لو مفيش check_out خليها "-")
+    let duration = "-";
+    let durationInHours = null;
+    if (record.check_in && record.check_out) {
+      const diff = (new Date(record.check_out) - new Date(record.check_in)) / (1000 * 60 * 60);
+      const hours = Math.floor(diff);
+      const minutes = Math.round((diff - hours) * 60);
+      durationInHours = diff;
+      duration = `${hours}h ${minutes}m`;
+    }
+
+    let durationCell = duration;
+    if (durationInHours !== null && (durationInHours > 14 || durationInHours < 4)) {
+      durationCell = `!! ${duration}`;
+    }
+
+    csvContent += `"${employee}",${checkIn},${checkOut},"${durationCell}"\n`;
   });
 
   const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
