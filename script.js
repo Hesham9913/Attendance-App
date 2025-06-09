@@ -1,16 +1,15 @@
+// =============== إعدادات وثوابت ===============
 // ✨ كود تحديث السرفيس ووركر وتشغيله فورًا + إجبار التحديث في iOS
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.getRegistration().then(reg => {
     if (reg) {
       // 💥 Force update يدوي لأي جهاز (خصوصًا iOS)
       reg.update();
-
       if (reg.waiting) {
         // لو في نسخة جديدة مستنية، شغلها فورًا
         reg.waiting.postMessage({ type: 'SKIP_WAITING' });
         window.location.reload(); // أعد تحميل الصفحة بعد التحديث
       }
-
       // لما يلاقي نسخة جديدة
       reg.addEventListener('updatefound', () => {
         const newWorker = reg.installing;
@@ -24,40 +23,6 @@ if ('serviceWorker' in navigator) {
     }
   });
 }
-
-
-
-window.onload = function() {
-  if (localStorage.getItem("loggedIn") === "true") {
-    const role = localStorage.getItem("role");
-    const fullname = localStorage.getItem("fullname");
-
-    currentUser = { fullname: fullname, role: role };
-
-    if (role === "employee") {
-      document.getElementById("login-area").style.display = "none";
-      document.getElementById("employee-area").style.display = "block";
-      document.getElementById("empName").textContent = fullname;
-      loadEmployeeAttendance(); // ✅ تحميل بيانات الحضور بعد الفتح
-      document.getElementById("employee-payslip").style.display = "block";
-
-
-    } else if (role === "admin") {
-      document.getElementById("login-area").style.display = "none";
-      document.getElementById("admin-area").style.display = "block";
-      loadAdminData();
-    }
-  }
-};
-
-const employeeFilter = new Choices('#employeeFilter', {
-  removeItemButton: true,
-  searchPlaceholderValue: 'Search employees...',
-  shouldSort: false
-});
-
-
-
 
 
 
@@ -202,64 +167,77 @@ const users = [
   
 ];
 
-let currentUser = null;
-const adminPassword = "Hesham9913"; // باسورد الأدمن
 
-let employeeAttendanceCache = []; // 🗂️ هيبقى فيه كل سجلات حضور الموظف
+// =============== متغيرات جلوبال لحالة الفلاتر والباجيناشن ===============
+let currentUser = null;
+const adminPassword = "Hesham9913";
+let employeeAttendanceCache = [];
+let allAttendanceRecords = [];
+let uniqueDates = [];
+let currentDayIndex = 0;
+
+// =============== متغيرات الفلترة الجديدة ===============
+window.filteredMode = false; // هل الفلاتر شغالة
+window.filteredData = [];
+window.filteredDates = [];
+window.currentFilteredDayIndex = 0;
+
+// =============== تسجيل الدخول وإدارة الجلسة ===============
+window.onload = function() {
+  if (localStorage.getItem("loggedIn") === "true") {
+    const role = localStorage.getItem("role");
+    const fullname = localStorage.getItem("fullname");
+    currentUser = { fullname: fullname, role: role };
+    if (role === "employee") {
+      document.getElementById("login-area").style.display = "none";
+      document.getElementById("employee-area").style.display = "block";
+      document.getElementById("empName").textContent = fullname;
+      loadEmployeeAttendance();
+      document.getElementById("employee-payslip").style.display = "block";
+    } else if (role === "admin") {
+      document.getElementById("login-area").style.display = "none";
+      document.getElementById("admin-area").style.display = "block";
+      loadAdminData();
+    }
+  }
+};
+
+const employeeFilter = new Choices('#employeeFilter', {
+  removeItemButton: true,
+  searchPlaceholderValue: 'Search employees...',
+  shouldSort: false
+});
 
 function login() {
   const username = document.getElementById("username").value.trim();
   const password = document.getElementById("password").value.trim();
   const user = users.find(u => u.username === username && u.password === password);
-
   if (!user) {
     alert("Invalid credentials!");
     return;
   }
-
   currentUser = user;
   document.getElementById("login-area").style.display = "none";
-
   if (user.role === "employee") {
     document.getElementById("employee-area").style.display = "block";
     document.getElementById("empName").textContent = user.fullname;
     localStorage.setItem("loggedIn", "true");
     localStorage.setItem("role", "employee");
     localStorage.setItem("fullname", user.fullname);
-    localStorage.setItem("username", user.username); // ✅ ضروري للخصومات
-
-    loadEmployeeAttendance(); // ✅ تحميل الحضور
-    document.getElementById("employee-payslip").style.display = "block"; // ✨ عرض جدول المرتب
-
-
+    localStorage.setItem("username", user.username);
+    loadEmployeeAttendance();
+    document.getElementById("employee-payslip").style.display = "block";
   } else if (user.role === "admin") {
     document.getElementById("admin-area").style.display = "block";
     localStorage.setItem("loggedIn", "true");
     localStorage.setItem("role", "admin");
     localStorage.setItem("fullname", user.fullname);
-    loadAdminData(); // ✅ تحميل بيانات الأدمن فقط
+    loadAdminData();
   }
 }
 
-function formatDateCairo(dateString) {
-  if (!dateString) return "";
-  const options = {
-    timeZone: 'Africa/Cairo',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false
-  };
-  const date = new Date(dateString);
-  const parts = new Intl.DateTimeFormat('en-GB', options).formatToParts(date);
-  const lookup = Object.fromEntries(parts.map(p => [p.type, p.value]));
-  return `${lookup.year}-${lookup.month}-${lookup.day} ${lookup.hour}:${lookup.minute}`;
-}
 
-
-
+// =============== واجهة الموظف ===============
 async function loadEmployeeAttendance() {
   const employeeRecordsDiv = document.getElementById('employee-records');
   const employeeTableBody = document.querySelector('#employeeTable tbody');
@@ -349,26 +327,19 @@ function logout() {
   location.reload();
 }
 
-let allAttendanceRecords = [];
-let uniqueDates = [];
-let currentDayIndex = 0;
 
+// =============== واجهة الأدمن ===============
 async function loadAdminData() {
   const { data: records, error } = await supabase
     .from('attendance')
     .select('*')
     .order('check_in', { ascending: true });
-
   if (error) {
     alert('❌ Error loading data!');
     console.error(error);
     return;
   }
-
-  // تخزين كل البيانات في المتغير العالمي
   allAttendanceRecords = records;
-
-  // استخراج كل الأيام المميزة
   const dateSet = new Set();
   records.forEach(r => {
     if (r.check_in) {
@@ -376,10 +347,9 @@ async function loadAdminData() {
       dateSet.add(date);
     }
   });
-
-  uniqueDates = Array.from(dateSet).sort(); // ترتيب الأيام
-  currentDayIndex = 0; // نبدأ من أول يوم
-
+  uniqueDates = Array.from(dateSet).sort();
+  currentDayIndex = 0;
+  window.filteredMode = false; // ← لازم ترجعه عشان تطلع من الفلتر لو فتحت داتا عادية
   renderAdminTableForDay(currentDayIndex);
 
   // تجهيز الفلاتر
@@ -393,6 +363,8 @@ async function loadAdminData() {
   );
 }
 
+// ==================== renderAdminTableForDay (سكيب لأنها سليمة) ====================
+
 function renderAdminTableForDay(dayIndex) {
   const tbody = document.querySelector("#attendanceTable tbody");
   const date = uniqueDates[dayIndex];
@@ -404,7 +376,7 @@ function renderAdminTableForDay(dayIndex) {
     return recordDate === date;
   });
 
-  filtered.sort((a, b) => new Date(a.check_in) - new Date(b.check_in)); // ترتيب بالتشيك إن
+  filtered.sort((a, b) => new Date(a.check_in) - new Date(b.check_in));
 
   filtered.forEach(record => {
     const row = document.createElement("tr");
@@ -417,7 +389,6 @@ function renderAdminTableForDay(dayIndex) {
       record.check_out_location
     ].forEach((field, index) => {
       const td = document.createElement("td");
-
       if ((index === 1 || index === 3) && field) {
         const span = document.createElement("span");
         span.textContent = formatDateCairo(field);
@@ -434,34 +405,29 @@ function renderAdminTableForDay(dayIndex) {
         td.textContent = field || "";
         td.contentEditable = true;
       }
-
       td.addEventListener("blur", async () => {
         const newEmployee = row.cells[0].textContent.trim();
         const newCheckIn = row.cells[1].textContent.trim();
         const newCheckInLocation = row.cells[2].textContent.trim();
         const newCheckOut = row.cells[3].textContent.trim();
         const newCheckOutLocation = row.cells[4].textContent.trim();
-
         await updateRecord(record.id, newEmployee, newCheckIn, newCheckOut, newCheckInLocation, newCheckOutLocation);
-
-        // ✅ أعد تحميل اليوم الحالي بعد التعديل
         renderAdminTableForDay(currentDayIndex);
       });
-
       row.appendChild(td);
     });
+    const durationTd = document.createElement("td");
+    durationTd.textContent = calcWorkDuration(record.check_in, record.check_out);
+    durationTd.style.fontWeight = 'bold';
+    row.appendChild(durationTd);
 
-    // ===== زرار التعديل وزرار الحذف =====
     const actionTd = document.createElement("td");
-
-    // زر التعديل ✏️
     const editBtn = document.createElement("button");
     editBtn.textContent = "✏️";
     editBtn.title = "Edit Check In/Out";
     editBtn.onclick = () => openEditPopup(record);
     actionTd.appendChild(editBtn);
 
-    // زر الحذف 🗑️
     const deleteBtn = document.createElement("button");
     deleteBtn.textContent = "🗑️";
     deleteBtn.onclick = async () => {
@@ -471,18 +437,143 @@ function renderAdminTableForDay(dayIndex) {
       }
     };
     actionTd.appendChild(deleteBtn);
-
     row.appendChild(actionTd);
-
     tbody.appendChild(row);
   });
-
   renderPaginationControls();
 }
 
-function renderPaginationControls() {
-  let paginationContainer = document.getElementById("paginationControls");
+// =============== 🔥🔥 **applyFilters الجديدة** 🔥🔥 ===============
+async function applyFilters() {
+  const selectedEmployees = employeeFilter.getValue().map(emp => emp.value);
+  const startDate = document.getElementById("startDateFilter").value;
+  const endDate = document.getElementById("endDateFilter").value;
 
+  const { data: records, error } = await supabase
+    .from('attendance')
+    .select('*');
+
+  if (error) {
+    alert('❌ Error loading data!');
+    console.error(error);
+    return;
+  }
+
+  let filtered = records;
+  if (selectedEmployees.length > 0) {
+    filtered = filtered.filter(r => selectedEmployees.includes(r.employee_name));
+  }
+  if (startDate && endDate) {
+    filtered = filtered.filter(r => {
+      if (!r.check_in) return false;
+      const recordDate = new Date(r.check_in).toISOString().split('T')[0];
+      return recordDate >= startDate && recordDate <= endDate;
+    });
+  }
+
+  let filteredDatesSet = new Set();
+  filtered.forEach(r => {
+    if (r.check_in) {
+      const date = new Date(r.check_in).toISOString().split("T")[0];
+      filteredDatesSet.add(date);
+    }
+  });
+  let filteredDates = Array.from(filteredDatesSet).sort();
+
+  if (filteredDates.length > 0) {
+    window.filteredMode = true;
+    window.filteredData = filtered;
+    window.filteredDates = filteredDates;
+    window.currentFilteredDayIndex = 0;
+    renderFilteredTableForDay(0);
+    renderFilteredPaginationControls();
+  } else {
+    document.querySelector("#attendanceTable tbody").innerHTML = '<tr><td colspan="7" style="text-align:center;">لا توجد بيانات</td></tr>';
+    document.getElementById("paginationControls").innerHTML = '';
+  }
+}
+
+// =============== 🔥🔥 renderFilteredTableForDay (احترافي) 🔥🔥 ===============
+function renderFilteredTableForDay(dayIndex) {
+  const tbody = document.querySelector("#attendanceTable tbody");
+  const date = window.filteredDates[dayIndex];
+  tbody.innerHTML = "";
+
+  const filtered = window.filteredData.filter(r => {
+    if (!r.check_in) return false;
+    const recordDate = new Date(r.check_in).toISOString().split("T")[0];
+    return recordDate === date;
+  });
+
+  filtered.sort((a, b) => new Date(a.check_in) - new Date(b.check_in));
+
+  filtered.forEach(record => {
+    const row = document.createElement("tr");
+
+    [
+      record.employee_name,
+      record.check_in,
+      record.check_in_location,
+      record.check_out,
+      record.check_out_location
+    ].forEach((field, index) => {
+      const td = document.createElement("td");
+      if ((index === 1 || index === 3) && field) {
+        const span = document.createElement("span");
+        span.textContent = formatDateCairo(field);
+        td.appendChild(span);
+        td.contentEditable = false;
+      } else if (index === 3 && !field) {
+        const btn = document.createElement("button");
+        btn.textContent = "🕓";
+        btn.title = "Add Check Out Time";
+        btn.onclick = () => openTimePickerPopup(record.id);
+        td.appendChild(btn);
+        td.contentEditable = false;
+      } else {
+        td.textContent = field || "";
+        td.contentEditable = true;
+      }
+      td.addEventListener("blur", async () => {
+        const newEmployee = row.cells[0].textContent.trim();
+        const newCheckIn = row.cells[1].textContent.trim();
+        const newCheckInLocation = row.cells[2].textContent.trim();
+        const newCheckOut = row.cells[3].textContent.trim();
+        const newCheckOutLocation = row.cells[4].textContent.trim();
+        await updateRecord(record.id, newEmployee, newCheckIn, newCheckOut, newCheckInLocation, newCheckOutLocation);
+        renderFilteredTableForDay(window.currentFilteredDayIndex);
+      });
+      row.appendChild(td);
+    });
+    const durationTd = document.createElement("td");
+    durationTd.textContent = calcWorkDuration(record.check_in, record.check_out);
+    durationTd.style.fontWeight = 'bold';
+    row.appendChild(durationTd);
+    const actionTd = document.createElement("td");
+    const editBtn = document.createElement("button");
+    editBtn.textContent = "✏️";
+    editBtn.title = "Edit Check In/Out";
+    editBtn.onclick = () => openEditPopup(record);
+    actionTd.appendChild(editBtn);
+
+    const deleteBtn = document.createElement("button");
+    deleteBtn.textContent = "🗑️";
+    deleteBtn.onclick = async () => {
+      if (confirm("Are you sure you want to delete this record?")) {
+        await deleteRecord(record.id);
+        row.remove();
+        renderFilteredTableForDay(dayIndex);
+      }
+    };
+    actionTd.appendChild(deleteBtn);
+    row.appendChild(actionTd);
+    tbody.appendChild(row);
+  });
+}
+
+// =============== 🔥🔥 renderFilteredPaginationControls (احترافي) 🔥🔥 ===============
+function renderFilteredPaginationControls() {
+  let paginationContainer = document.getElementById("paginationControls");
   if (!paginationContainer) {
     paginationContainer = document.createElement("div");
     paginationContainer.id = "paginationControls";
@@ -490,160 +581,25 @@ function renderPaginationControls() {
     paginationContainer.style.textAlign = "center";
     document.querySelector(".table-container").appendChild(paginationContainer);
   }
-
-  paginationContainer.innerHTML = uniqueDates.map((d, i) => {
-    const style = i === currentDayIndex ? "font-weight:bold; color:#e67e22;" : "cursor:pointer;";
-    return `<span style="${style}" onclick="changeDay(${i})">${i + 1}</span>`;
+  paginationContainer.innerHTML = window.filteredDates.map((d, i) => {
+    const style = i === window.currentFilteredDayIndex ? "font-weight:bold; color:#e67e22;" : "cursor:pointer;";
+    return `<span style="${style}" onclick="changeFilteredDay(${i})">${i + 1}</span>`;
   }).join(" | ");
 }
-
-function changeDay(index) {
-  currentDayIndex = index;
-  renderAdminTableForDay(currentDayIndex);
+window.changeFilteredDay = function(index) {
+  window.currentFilteredDayIndex = index;
+  renderFilteredTableForDay(window.currentFilteredDayIndex);
+  renderFilteredPaginationControls();
 }
 
-
-function toggleActiveCheckins() {
-  const onlyActive = document.getElementById("onlyActiveCheckins").checked;
-
-  if (!onlyActive) {
-    renderAdminTableForDay(currentDayIndex);
-    return;
-  }
-
-  const tbody = document.querySelector("#attendanceTable tbody");
-  tbody.innerHTML = "";
-
-  const activeRecords = allAttendanceRecords.filter(r => {
-    return r.check_in && !r.check_out;
-  });
-
-  // ✅ ترتيب حسب location ثم check_in
-  activeRecords.sort((a, b) => {
-    const locA = a.check_in_location || "";
-    const locB = b.check_in_location || "";
-    if (locA < locB) return -1;
-    if (locA > locB) return 1;
-    return new Date(a.check_in) - new Date(b.check_in);
-  });
-
-  activeRecords.forEach(record => {
-    const row = document.createElement("tr");
-
-    [
-      record.employee_name,
-      record.check_in,
-      record.check_in_location,
-      "-", // Check Out is empty
-      "-"  // Check Out Location is empty
-    ].forEach((field, index) => {
-      const td = document.createElement("td");
-      if (index === 1 && record.check_in) {
-        td.textContent = formatDateCairo(record.check_in);
-      } else {
-        td.textContent = field;
-      }
-      row.appendChild(td);
-    });
-
-    const actionTd = document.createElement("td");
-    // زر التعديل ✏️
-    const editBtn = document.createElement("button");
-    editBtn.textContent = "✏️";
-    editBtn.title = "Edit Check In/Out";
-    editBtn.onclick = () => openEditPopup(record);
-    actionTd.appendChild(editBtn);
-
-    // زر الحذف 🗑️
-    const deleteBtn = document.createElement("button");
-    deleteBtn.textContent = "🗑️";
-    deleteBtn.onclick = async () => {
-      if (confirm("Are you sure you want to delete this record?")) {
-        await deleteRecord(record.id);
-        row.remove();
-      }
-    };
-    actionTd.appendChild(deleteBtn);
-
-    row.appendChild(actionTd);
-
-    tbody.appendChild(row);
-  });
-
-  // نخفي الباجيناشن لو في الفلترة
-  const pagination = document.getElementById("paginationControls");
-  if (pagination) pagination.style.display = "none";
-}
-
-// دالة البوب أب بتاعة التعديل ✏️ 
-function openEditPopup(record) {
-  const overlay = document.createElement("div");
-  overlay.style.position = "fixed";
-  overlay.style.top = "0";
-  overlay.style.left = "0";
-  overlay.style.width = "100%";
-  overlay.style.height = "100%";
-  overlay.style.backgroundColor = "rgba(0,0,0,0.4)";
-  overlay.style.display = "flex";
-  overlay.style.justifyContent = "center";
-  overlay.style.alignItems = "center";
-  overlay.style.zIndex = "9999";
-
-  const popup = document.createElement("div");
-  popup.style.background = "#fff";
-  popup.style.padding = "22px";
-  popup.style.borderRadius = "10px";
-  popup.style.boxShadow = "0 0 16px #0002";
-  popup.style.minWidth = "340px";
-  popup.innerHTML = `
-    <h3 style="margin-top:0;">🛠️ Edit Check In / Out</h3>
-    <label>Check In: <input type="datetime-local" id="editCheckIn"></label><br><br>
-    <label>Check Out: <input type="datetime-local" id="editCheckOut"></label><br><br>
-    <button id="editSaveBtn">💾 Save</button>
-    <button id="editCancelBtn">❌ Cancel</button>
-  `;
-
-  overlay.appendChild(popup);
-  document.body.appendChild(overlay);
-
-  // Prefill data
-  document.getElementById("editCheckIn").value = record.check_in
-  ? toDatetimeLocal(record.check_in)
-  : "";
-  document.getElementById("editCheckOut").value = record.check_out
-  ? toDatetimeLocal(record.check_out)
-  : "";
-
-  document.getElementById("editCancelBtn").onclick = () => {
-    document.body.removeChild(overlay);
-  };
-
-  document.getElementById("editSaveBtn").onclick = async () => {
-    const checkInVal = document.getElementById("editCheckIn").value;
-    const checkOutVal = document.getElementById("editCheckOut").value;
-
-    // بنحط القيمة الجديدة (أو null لو فاضي)
-    const newCheckIn = checkInVal ? new Date(checkInVal).toISOString() : null;
-    const newCheckOut = checkOutVal ? new Date(checkOutVal).toISOString() : null;
-
-    await updateRecord(record.id, null, newCheckIn, newCheckOut, null, null);
-    loadAdminData();
-    document.body.removeChild(overlay);
-  };
-}
-
-
-
-
+// =============== 🔥🔥 تعديل updateRecord ليحفظ الفلتر/المكان 🔥🔥 ===============
 async function updateRecord(id, employeeName = null, checkIn = null, checkOut = null, checkInLocation = null, checkOutLocation = null) {
   const updates = {};
-
   if (employeeName !== null) updates.employee_name = employeeName;
   if (checkIn !== null) updates.check_in = checkIn ? new Date(checkIn).toISOString() : null;
   if (checkOut !== null) updates.check_out = checkOut ? new Date(checkOut).toISOString() : null;
   if (checkInLocation !== null) updates.check_in_location = checkInLocation;
   if (checkOutLocation !== null) updates.check_out_location = checkOutLocation;
-
   const { error } = await supabase
     .from('attendance')
     .update(updates)
@@ -652,8 +608,44 @@ async function updateRecord(id, employeeName = null, checkIn = null, checkOut = 
   if (error) {
     console.error('❌ Error updating record:', error);
     alert('❌ Failed to update record.');
+  } else {
+    if (window.filteredMode) {
+      applyFilters();
+    } else {
+      renderAdminTableForDay(currentDayIndex);
+    }
   }
 }
+
+// =============== 🔥🔥 renderPaginationControls للشهور (احترافي) 🔥🔥 ===============
+function renderPaginationControls() {
+  let paginationContainer = document.getElementById("paginationControls");
+  if (!paginationContainer) {
+    paginationContainer = document.createElement("div");
+    paginationContainer.id = "paginationControls";
+    paginationContainer.style.marginTop = "20px";
+    paginationContainer.style.textAlign = "center";
+    document.querySelector(".table-container").appendChild(paginationContainer);
+  }
+  const months = {};
+  uniqueDates.forEach((d, i) => {
+    const [year, month, day] = d.split("-");
+    const key = `${year}-${month}`;
+    if (!months[key]) months[key] = [];
+    months[key].push({ date: d, idx: i });
+  });
+  let html = "";
+  Object.entries(months).forEach(([month, days], mIdx) => {
+    html += `<div style="margin-bottom:7px;">${month}: `;
+    html += days.map((d, i) => {
+      const style = d.idx === currentDayIndex ? "font-weight:bold; color:#e67e22;" : "cursor:pointer;";
+      return `<span style="${style}" onclick="changeDay(${d.idx})">${d.idx + 1}</span>`;
+    }).join(" | ");
+    html += "</div>";
+  });
+  paginationContainer.innerHTML = html;
+} // ← هنا كان لازم يتقفل القوس
+
 
 
 
@@ -671,8 +663,29 @@ async function deleteRecord(id) {
 
 
 
+
+// =============== دوال مساعدة Utilities ===============
+function formatDateCairo(dateString) {
+  if (!dateString) return "";
+  const options = {
+    timeZone: 'Africa/Cairo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  };
+  const date = new Date(dateString);
+  const parts = new Intl.DateTimeFormat('en-GB', options).formatToParts(date);
+  const lookup = Object.fromEntries(parts.map(p => [p.type, p.value]));
+  return `${lookup.year}-${lookup.month}-${lookup.day} ${lookup.hour}:${lookup.minute}`;
+}
+
+
+
 function isWithinRange(position) {
-  const maxDistance = 30; // مسافة السماح (متر)
+  const maxDistance = 20; // مسافة السماح (متر)
 
   let nearestBranch = null;
   let nearestDistance = Infinity;
@@ -733,7 +746,7 @@ async function checkIn() {
   // ✅ طلب تحديد الموقع بدقة + مهلة + بدون كاش
   navigator.geolocation.getCurrentPosition(async position => {
     const result = isWithinRange(position);
-    const maxDistance = 30; // ✨ الحد الأقصى المقبول للمسافة
+    const maxDistance = 20; // ✨ الحد الأقصى المقبول للمسافة
 
     if (result) {
       const { branchName, distance } = result;
@@ -785,7 +798,7 @@ function checkOut() {
 
   navigator.geolocation.getCurrentPosition(async position => {
     const result = isWithinRange(position);
-    const maxDistance = 30;
+    const maxDistance = 20;
 
     if (result) {
       const { branchName, distance } = result;
@@ -965,6 +978,7 @@ async function downloadReport() {
 
 
 
+// ==== Apply Filters احترافي ==== //
 async function applyFilters() {
   const selectedEmployees = employeeFilter.getValue().map(emp => emp.value);
   const startDate = document.getElementById("startDateFilter").value;
@@ -980,17 +994,11 @@ async function applyFilters() {
     return;
   }
 
-  const tbody = document.querySelector("#attendanceTable tbody");
-  tbody.innerHTML = "";
-
+  // فلترة الداتا
   let filtered = records;
-
-  // فلترة الموظفين
   if (selectedEmployees.length > 0) {
     filtered = filtered.filter(r => selectedEmployees.includes(r.employee_name));
   }
-
-  // فلترة التواريخ
   if (startDate && endDate) {
     filtered = filtered.filter(r => {
       if (!r.check_in) return false;
@@ -999,51 +1007,31 @@ async function applyFilters() {
     });
   }
 
-  filtered.forEach(record => {
-    const row = document.createElement("tr");
-
-    // Employee
-    const employeeCell = document.createElement("td");
-    employeeCell.textContent = record.employee_name || "";
-    row.appendChild(employeeCell);
-
-    // Check In
-    const checkInCell = document.createElement("td");
-    checkInCell.textContent = formatDateCairo(record.check_in);
-    row.appendChild(checkInCell);
-
-    // Check In Location
-    const checkInLocationCell = document.createElement("td");
-    checkInLocationCell.textContent = record.check_in_location || "";
-    row.appendChild(checkInLocationCell);
-
-    // Check Out
-    const checkOutCell = document.createElement("td");
-    checkOutCell.textContent = formatDateCairo(record.check_out);
-    row.appendChild(checkOutCell);
-
-    // Check Out Location
-    const checkOutLocationCell = document.createElement("td");
-    checkOutLocationCell.textContent = record.check_out_location || "";
-    row.appendChild(checkOutLocationCell);
-
-    // Actions
-    const actionCell = document.createElement("td");
-    const deleteBtn = document.createElement("button");
-    deleteBtn.textContent = "🗑️";
-    deleteBtn.onclick = async () => {
-      if (confirm("Are you sure you want to delete this record?")) {
-        await deleteRecord(record.id);
-        row.remove();
-      }
-    };
-    actionCell.appendChild(deleteBtn);
-    row.appendChild(actionCell);
-
-    tbody.appendChild(row);
+  // إعادة استخراج uniqueDates للفلتر الجديد
+  let filteredDatesSet = new Set();
+  filtered.forEach(r => {
+    if (r.check_in) {
+      const date = new Date(r.check_in).toISOString().split("T")[0];
+      filteredDatesSet.add(date);
+    }
   });
-}
+  // ترتيب الأيام
+  let filteredDates = Array.from(filteredDatesSet).sort();
 
+  // لو لسه فيه أيام - اعرض أول يوم
+  if (filteredDates.length > 0) {
+    window.filteredMode = true; // وضع الفلتر
+    window.filteredData = filtered;
+    window.filteredDates = filteredDates;
+    window.currentFilteredDayIndex = 0;
+    renderFilteredTableForDay(0);
+    renderFilteredPaginationControls();
+  } else {
+    // لو مفيش داتا
+    document.querySelector("#attendanceTable tbody").innerHTML = '<tr><td colspan="7" style="text-align:center;">لا توجد بيانات</td></tr>';
+    document.getElementById("paginationControls").innerHTML = '';
+  }
+}
 
 
 
@@ -1435,5 +1423,6 @@ function toDatetimeLocal(dateString) {
   const local = new Date(date.getTime() - offset * 60 * 1000);
   return local.toISOString().slice(0,16);
 }
+
 
 
