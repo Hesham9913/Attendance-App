@@ -744,7 +744,6 @@ function toggleActiveCheckins() {
 }
 
 
-// دالة البوب أب بتاعة التعديل ✏️ 
 function openEditPopup(record) {
   const overlay = document.createElement("div");
   overlay.style.position = "fixed";
@@ -777,11 +776,11 @@ function openEditPopup(record) {
 
   // Prefill data
   document.getElementById("editCheckIn").value = record.check_in
-  ? toDatetimeLocal(record.check_in)
-  : "";
+    ? toDatetimeLocal(record.check_in)
+    : "";
   document.getElementById("editCheckOut").value = record.check_out
-  ? toDatetimeLocal(record.check_out)
-  : "";
+    ? toDatetimeLocal(record.check_out)
+    : "";
 
   document.getElementById("editCancelBtn").onclick = () => {
     document.body.removeChild(overlay);
@@ -791,12 +790,17 @@ function openEditPopup(record) {
     const checkInVal = document.getElementById("editCheckIn").value;
     const checkOutVal = document.getElementById("editCheckOut").value;
 
-    // بنحط القيمة الجديدة (أو null لو فاضي)
     const newCheckIn = checkInVal ? new Date(checkInVal).toISOString() : null;
     const newCheckOut = checkOutVal ? new Date(checkOutVal).toISOString() : null;
 
     await updateRecord(record.id, null, newCheckIn, newCheckOut, null, null);
-    loadAdminData();
+
+    // ✅ خلي الفلتر شغال زي ما هو لو هو كان شغال
+    if (window.filteredMode) {
+      applyFilters();
+    } else {
+      loadAdminData();
+    }
     document.body.removeChild(overlay);
   };
 }
@@ -1160,19 +1164,32 @@ async function downloadReport() {
 
 async function addNewRecord() {
   const tbody = document.querySelector("#attendanceTable tbody");
-
   const row = document.createElement("tr");
 
-  // --- خانة الموظف - Dropdown ---
+  // --- تحديد الموظف من الفلتر (لو فيه موظف واحد متحدد) ---
+  const selectedEmployees = employeeFilter.getValue().map(emp => emp.value);
+  let preselectedEmployee = null;
+  if (selectedEmployees.length === 1) {
+    preselectedEmployee = selectedEmployees[0];
+  }
+
+  // --- خانة الموظف ---
   const nameCell = document.createElement("td");
-  const select = document.createElement("select");
-  users.forEach(user => {
-    const option = document.createElement("option");
-    option.value = user.fullname;
-    option.textContent = user.fullname;
-    select.appendChild(option);
-  });
-  nameCell.appendChild(select);
+  let select;
+  if (preselectedEmployee) {
+    // لو فيه موظف واحد متفلتر، اظهر الاسم بس وخزنه في متغير
+    nameCell.textContent = preselectedEmployee;
+  } else {
+    // Dropdown عادي
+    select = document.createElement("select");
+    users.forEach(user => {
+      const option = document.createElement("option");
+      option.value = user.fullname;
+      option.textContent = user.fullname;
+      select.appendChild(option);
+    });
+    nameCell.appendChild(select);
+  }
   row.appendChild(nameCell);
 
   // --- خانة Check In - تاريخ + ساعة ---
@@ -1224,7 +1241,8 @@ async function addNewRecord() {
   const saveBtn = document.createElement("button");
   saveBtn.textContent = "💾";
   saveBtn.onclick = async () => {
-    const employeeName = select.value;
+    // اسم الموظف: لو متفلتر موظف واحد هستخدمه، غير كده من الـdropdown
+    const employeeName = preselectedEmployee || (select ? select.value : "");
 
     const checkIn = checkInDate.value && checkInTime.value
       ? new Date(`${checkInDate.value}T${checkInTime.value}:00+03:00`).toISOString()
@@ -1250,7 +1268,12 @@ async function addNewRecord() {
       console.error(error);
     } else {
       alert("✅ Record added successfully!");
-      loadAdminData(); // Refresh the table
+      // لو انت في وضع فلتر: ارجع الفلتر زي ما هو 
+      if (window.filteredMode) {
+        applyFilters();
+      } else {
+        loadAdminData();
+      }
     }
   };
 
