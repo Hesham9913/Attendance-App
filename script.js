@@ -1033,6 +1033,63 @@ async function applyFilters() {
   }
 }
 
+// دالة البوب أب بتاعة التعديل ✏️ 
+function openEditPopup(record) {
+  const overlay = document.createElement("div");
+  overlay.style.position = "fixed";
+  overlay.style.top = "0";
+  overlay.style.left = "0";
+  overlay.style.width = "100%";
+  overlay.style.height = "100%";
+  overlay.style.backgroundColor = "rgba(0,0,0,0.4)";
+  overlay.style.display = "flex";
+  overlay.style.justifyContent = "center";
+  overlay.style.alignItems = "center";
+  overlay.style.zIndex = "9999";
+
+  const popup = document.createElement("div");
+  popup.style.background = "#fff";
+  popup.style.padding = "22px";
+  popup.style.borderRadius = "10px";
+  popup.style.boxShadow = "0 0 16px #0002";
+  popup.style.minWidth = "340px";
+  popup.innerHTML = `
+    <h3 style="margin-top:0;">🛠️ Edit Check In / Out</h3>
+    <label>Check In: <input type="datetime-local" id="editCheckIn"></label><br><br>
+    <label>Check Out: <input type="datetime-local" id="editCheckOut"></label><br><br>
+    <button id="editSaveBtn">💾 Save</button>
+    <button id="editCancelBtn">❌ Cancel</button>
+  `;
+
+  overlay.appendChild(popup);
+  document.body.appendChild(overlay);
+
+  // Prefill data
+  document.getElementById("editCheckIn").value = record.check_in
+  ? toDatetimeLocal(record.check_in)
+  : "";
+  document.getElementById("editCheckOut").value = record.check_out
+  ? toDatetimeLocal(record.check_out)
+  : "";
+
+  document.getElementById("editCancelBtn").onclick = () => {
+    document.body.removeChild(overlay);
+  };
+
+  document.getElementById("editSaveBtn").onclick = async () => {
+    const checkInVal = document.getElementById("editCheckIn").value;
+    const checkOutVal = document.getElementById("editCheckOut").value;
+
+    // بنحط القيمة الجديدة (أو null لو فاضي)
+    const newCheckIn = checkInVal ? new Date(checkInVal).toISOString() : null;
+    const newCheckOut = checkOutVal ? new Date(checkOutVal).toISOString() : null;
+
+    await updateRecord(record.id, null, newCheckIn, newCheckOut, null, null);
+    loadAdminData();
+    document.body.removeChild(overlay);
+  };
+}
+
 
 
 async function addNewRecord() {
