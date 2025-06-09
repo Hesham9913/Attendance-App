@@ -1426,3 +1426,18 @@ function toDatetimeLocal(dateString) {
 
 
 
+// =============== حساب مدة العمل بين Check In و Check Out ===============
+function calcWorkDuration(checkIn, checkOut) {
+  if (!checkIn || !checkOut) return "-";
+  try {
+    const inDate = new Date(checkIn);
+    const outDate = new Date(checkOut);
+    let diffMs = outDate - inDate;
+    if (isNaN(diffMs) || diffMs < 0) return "-";
+    const hours = Math.floor(diffMs / (1000 * 60 * 60));
+    const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+    return `${hours}h ${minutes}m`;
+  } catch (e) {
+    return "-";
+  }
+}
