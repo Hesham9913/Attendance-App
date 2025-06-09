@@ -661,7 +661,7 @@ function toggleActiveCheckins() {
     return r.check_in && !r.check_out;
   });
 
-  // ✅ ترتيب حسب location ثم check_in
+  // ترتيب حسب location ثم check_in
   activeRecords.sort((a, b) => {
     const locA = a.check_in_location || "";
     const locB = b.check_in_location || "";
@@ -673,22 +673,47 @@ function toggleActiveCheckins() {
   activeRecords.forEach(record => {
     const row = document.createElement("tr");
 
-    [
-      record.employee_name,
-      record.check_in,
-      record.check_in_location,
-      "-", // Check Out is empty
-      "-"  // Check Out Location is empty
-    ].forEach((field, index) => {
-      const td = document.createElement("td");
-      if (index === 1 && record.check_in) {
-        td.textContent = formatDateCairo(record.check_in);
-      } else {
-        td.textContent = field;
-      }
-      row.appendChild(td);
-    });
+    // Employee Name
+    const empTd = document.createElement("td");
+    empTd.textContent = record.employee_name || "-";
+    row.appendChild(empTd);
 
+    // Check In
+    const inTd = document.createElement("td");
+    inTd.textContent = record.check_in ? formatDateCairo(record.check_in) : "-";
+    row.appendChild(inTd);
+
+    // Check In Location
+    const inLocTd = document.createElement("td");
+    inLocTd.textContent = record.check_in_location || "-";
+    row.appendChild(inLocTd);
+
+    // Check Out
+    const outTd = document.createElement("td");
+    // زر check out لو مفيش check_out
+    if (!record.check_out) {
+      const btn = document.createElement("button");
+      btn.textContent = "🕓";
+      btn.title = "Add Check Out Time";
+      btn.onclick = () => openTimePickerPopup(record.id);
+      outTd.appendChild(btn);
+    } else {
+      outTd.textContent = formatDateCairo(record.check_out);
+    }
+    row.appendChild(outTd);
+
+    // Check Out Location
+    const outLocTd = document.createElement("td");
+    outLocTd.textContent = record.check_out_location || "-";
+    row.appendChild(outLocTd);
+
+    // Duration
+    const durationTd = document.createElement("td");
+    durationTd.textContent = record.check_in && record.check_out ? calcWorkDuration(record.check_in, record.check_out) : "-";
+    durationTd.style.fontWeight = 'bold';
+    row.appendChild(durationTd);
+
+    // Actions
     const actionTd = document.createElement("td");
     // زر التعديل ✏️
     const editBtn = document.createElement("button");
@@ -717,6 +742,7 @@ function toggleActiveCheckins() {
   const pagination = document.getElementById("paginationControls");
   if (pagination) pagination.style.display = "none";
 }
+
 
 // دالة البوب أب بتاعة التعديل ✏️ 
 function openEditPopup(record) {
