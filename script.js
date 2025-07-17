@@ -167,7 +167,17 @@ const users = [
   { username: "Mohamed Tofaha", password: "EH53267", role: "employee", fullname: "Mohamed Tofaha" },
   { username: "Kerolos Emad", password: "KM45391", role: "employee", fullname: "Kerolos Emad" },
   { username: "Zeyad Mahros", password: "ZR62415", role: "employee", fullname: "Zeyad Mahros" },
-  
+  { username: "Gana Naser", password: "GN35197", role: "employee", fullname: "Gana Naser" },
+  { username: "Hassan Mahmoud", password: "SD12748", role: "employee", fullname: "Hassan Mahmoud" },
+  { username: "Mohamed Mahros", password: "HR56327", role: "employee", fullname: "Mohamed Mahros" },
+  { username: "Adam Mohamed", password: "AM75418", role: "employee", fullname: "Adam Mohamed" },
+  { username: "Ahmed Fathi", password: "DF25796", role: "employee", fullname: "Ahmed Fathi" },
+  { username: "Khaled ayman", password: "KY54361", role: "employee", fullname: "Khaled ayman" },
+  { username: "Saif El-Boghdady", password: "SG71632", role: "employee", fullname: "Saif El-Boghdady" },
+  { username: "Saif Mashally", password: "IL52374", role: "employee", fullname: "Saif Mashally" },
+  { username: "Emad Mostafa", password: "MT74962", role: "employee", fullname: "Emad Mostafa" },
+  { username: "Ahmed Talaat", password: "EL19548", role: "employee", fullname: "Ahmed Talaat" },
+              
 ];
 
 
