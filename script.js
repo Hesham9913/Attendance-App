@@ -33,6 +33,7 @@ const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_API_KEY);
 const allowedLocations = [
   { lat: 31.266795152125205, lng: 32.30827449591136, name: "Brooklyn's & Nino Jeans" },
   { lat: 31.266866357239714, lng: 32.312386134622024, name: "Central Perk" },
+  { lat: 31.355239706552144, lng: 32.080194057671314, name: "Portosaid" },
   { lat: 31.267093359092453, lng: 32.307928515920594, name: "Salah Salem" }, 
   { lat: 31.26703525960804, lng: 32.307971996158685, name: "Salah Salem" },
   { lat: 31.266389751928966, lng: 32.31425776481029, name: "Grand" }, 
@@ -177,6 +178,17 @@ const users = [
   { username: "Saif Mashally", password: "IL52374", role: "employee", fullname: "Saif Mashally" },
   { username: "Emad Mostafa", password: "MT74962", role: "employee", fullname: "Emad Mostafa" },
   { username: "Ahmed Talaat", password: "EL19548", role: "employee", fullname: "Ahmed Talaat" },
+  { username: "Aya Soudy", password: "AY57392", role: "employee", fullname: "Aya Soudy" },
+  { username: "Mean Ayman", password: "ME80416", role: "employee", fullname: "Mean Ayman" },
+  { username: "Marwan Al-Abasiry", password: "MA62958", role: "employee", fullname: "Marwan Al-Abasiry" },
+  { username: "Mohamed Samy M", password: "MO95147", role: "employee", fullname: "Mohamed Samy M" },
+  { username: "Mustafa Sufyan", password: "MU28405", role: "employee", fullname: "Mustafa Sufyan" },
+  { username: "Omar Mohamed", password: "OM67139", role: "employee", fullname: "Omar Mohamed" },
+  { username: "Yosef Al-Arabi", password: "YO39562", role: "employee", fullname: "Yosef Al-Arabi" },
+  { username: "Abdallah Abed", password: "AB84327", role: "employee", fullname: "Abdallah Abed" },
+  { username: "Ahmed El-Tantawy", password: "AH47291", role: "employee", fullname: "Ahmed El-Tantawy" },
+  { username: "Yosef Metwally", password: "YO18654", role: "employee", fullname: "Yosef Metwally" },
+
               
 ];
 
