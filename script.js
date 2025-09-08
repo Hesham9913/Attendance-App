@@ -188,6 +188,11 @@ const users = [
   { username: "Abdallah Abed", password: "AB84327", role: "employee", fullname: "Abdallah Abed" },
   { username: "Ahmed El-Tantawy", password: "AH47291", role: "employee", fullname: "Ahmed El-Tantawy" },
   { username: "Yosef Metwally", password: "YO18654", role: "employee", fullname: "Yosef Metwally" },
+  { username: "Saif Mohamed", password: "SA73920", role: "employee", fullname: "Saif Mohamed" },
+  { username: "Hanan Hamed", password: "HA58142", role: "employee", fullname: "Hanan Hamed" },
+  { username: "Ibrahim El-Robi", password: "IB90476", role: "employee", fullname: "Ibrahim El-Robi" },
+  { username: "Hassan Mohamed", password: "HA32751", role: "employee", fullname: "Hassan Mohamed" },
+
 
               
 ];
