@@ -192,8 +192,8 @@ const users = [
   { username: "Hanan Hamed", password: "HA58142", role: "employee", fullname: "Hanan Hamed" },
   { username: "Ibrahim El-Robi", password: "IB90476", role: "employee", fullname: "Ibrahim El-Robi" },
   { username: "Hassan Mohamed", password: "HA32751", role: "employee", fullname: "Hassan Mohamed" },
-
-
+  { username: "Omar Tarek", password: "OK32751", role: "employee", fullname: "Omar Tarek" },
+  { username: "Mohamed Shehata", password: "HH32751", role: "employee", fullname: "Mohamed Shehata" },
               
 ];
 
