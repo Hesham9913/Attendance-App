@@ -196,6 +196,10 @@ const users = [
   { username: "Mohamed Shehata", password: "HH32751", role: "employee", fullname: "Mohamed Shehata" },
   { username: "Mahmoud Hany", password: "DH54391", role: "employee", fullname: "Mahmoud Hany" }, 
   { username: "Reda Alaa", password: "EL53281", role: "employee", fullname: "Reda Alaa" },
+  { username: "Mohab El-Gamal", password: "HE41983", role: "employee", fullname: "Mohab El-Gamal" },
+  { username: "Beshoy Nagy", password: "SN14297", role: "employee", fullname: "Beshoy Nagy" },
+  { username: "Hassan Abd Allah", password: "NL41220", role: "employee", fullname: "Hassan Abd Allah" },
+  { username: "Ahmed Salah", password: "DA95361", role: "employee", fullname: "Ahmed Salah" },
   { username: "Hamsa Samir", password: "HI74139", role: "employee", fullname: "Hamsa Samir" },
              
 ];
